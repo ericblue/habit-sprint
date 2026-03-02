@@ -2,7 +2,11 @@
 
 import argparse
 import json
+import os
 import sys
+
+DEFAULT_DB_DIR = os.path.join(os.path.expanduser("~"), ".habit-sprint")
+DEFAULT_DB_PATH = os.path.join(DEFAULT_DB_DIR, "habits.db")
 
 
 def main() -> int:
@@ -17,8 +21,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--db",
-        default="./habit-sprint.db",
-        help="Path to SQLite database (default: ./habit-sprint.db)",
+        default=DEFAULT_DB_PATH,
+        help=f"Path to SQLite database (default: {DEFAULT_DB_PATH})",
     )
     parser.add_argument(
         "--format",
@@ -29,13 +33,13 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # Determine JSON input source
+    # Determine JSON input source (--json flag takes priority over stdin)
     raw_json: str | None = None
 
-    if not sys.stdin.isatty():
-        raw_json = sys.stdin.read()
-    elif args.json_str is not None:
+    if args.json_str is not None:
         raw_json = args.json_str
+    elif not sys.stdin.isatty():
+        raw_json = sys.stdin.read()
 
     if raw_json is None:
         print("Error: provide JSON via stdin pipe or --json flag", file=sys.stderr)
@@ -49,6 +53,11 @@ def main() -> int:
         envelope = {"status": "error", "data": None, "error": f"Invalid JSON: {exc}"}
         print(json.dumps(envelope, indent=2))
         return 1
+
+    # Ensure database directory exists
+    db_dir = os.path.dirname(args.db)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
 
     # Execute action
     from habit_sprint.executor import execute

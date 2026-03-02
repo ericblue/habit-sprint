@@ -291,7 +291,7 @@ Implement the thin CLI adapter that reads JSON, calls the executor, and outputs 
 **4.1 - CLI JSON mode**
 - [ ] Reads JSON from stdin when piped, or from --json flag argument
 - [ ] Calls `executor.execute()` and prints JSON result to stdout
-- [ ] `--db` flag overrides default database path (default: `./habit-sprint.db`)
+- [ ] `--db` flag overrides default database path (default: `~/.habit-sprint/habits.db`)
 - [ ] Entry point registered in pyproject.toml as `habit-sprint` console script
 - [ ] Exit code 0 for success, 1 for errors
 

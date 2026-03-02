@@ -88,12 +88,13 @@ class TestDbFlag:
         assert mock_exec.call_args[0][1] == db
 
     def test_default_db_path(self):
+        from habit_sprint.cli import DEFAULT_DB_PATH
         action = json.dumps({"action": "list_sprints"})
         with mock.patch("sys.argv", ["habit-sprint", "--json", action]):
             with mock.patch("sys.stdin", _tty_stdin()):
                 with mock.patch("habit_sprint.executor.execute", return_value={"status": "success", "data": {}, "error": None}) as mock_exec:
                     main()
-        assert mock_exec.call_args[0][1] == "./habit-sprint.db"
+        assert mock_exec.call_args[0][1] == DEFAULT_DB_PATH
 
 
 class TestInvalidJson:

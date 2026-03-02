@@ -21,7 +21,7 @@ SKILL_TARGET   = SKILL.md
 
 # ── Setup ──────────────────────────────────────────────────────────────────────
 
-.PHONY: venv install install-dev
+.PHONY: venv install install-global install-dev
 
 venv: ## Create virtual environment (.venv/) if it doesn't exist
 	@if [ ! -d "$(VENV)" ]; then \
@@ -37,6 +37,14 @@ install: venv ## Install habit-sprint in editable mode
 	@echo ""
 	@echo "habit-sprint installed. Run with:"
 	@echo "  $(HABIT_SPRINT) --help"
+
+install-global: ## Install habit-sprint globally (adds habit-sprint to PATH)
+	pip install -e .
+	@echo ""
+	@echo "habit-sprint installed globally. Verify with:"
+	@echo "  which habit-sprint"
+	@echo ""
+	@echo "Database location: ~/.habit-sprint/habits.db"
 
 install-dev: venv ## Install habit-sprint with dev dependencies (pytest)
 	$(PIP) install -e ".[dev]"

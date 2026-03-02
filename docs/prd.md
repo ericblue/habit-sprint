@@ -1328,7 +1328,7 @@ The `--format markdown` flag is supported on any reporting action. Simpler actio
 habit-sprint --db /path/to/habits.db --json '{...}'
 ```
 
-Default database location: `./habit-sprint.db` in the current directory. Can be overridden with `--db` flag. SQLite file should be stored in a shared mount directory for CmdShell access and backup.
+Default database location: `~/.habit-sprint/habits.db`. Can be overridden with `--db` flag. SQLite file should be stored in a shared mount directory for CmdShell access and backup.
 
 ---
 

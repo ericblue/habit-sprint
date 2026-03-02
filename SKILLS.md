@@ -1,3 +1,9 @@
+---
+name: habit-sprint
+description: Manage habit tracking via the habit-sprint engine. Use when user wants to create habits, log habit entries, manage sprints, view scores, check streaks, run retrospectives, view weekly completion, or ask about their habits.
+allowed-tools: Bash(habit-sprint:*) Bash(echo:*) Read
+---
+
 # Habit Sprint — LLM Skill Reference
 
 **Version:** 1.0
@@ -13,6 +19,85 @@ Habit Sprint is a deterministic sprint-based habit tracking engine. It manages t
 - **Never invent fields.** Only use fields documented in the schemas below. Unknown fields are rejected.
 - **One action per request.** Do not batch multiple mutations into a single action. Each action operates atomically.
 - **All operations go through the JSON contract.** No direct SQL, no bypassing the executor.
+
+---
+
+## Invocation
+
+All commands go through the `habit-sprint` CLI. The CLI must be installed and on PATH (via `pip install -e .` or `make install-global`).
+
+**Command pattern:**
+
+```bash
+habit-sprint --json '{"action": "<action_name>", "payload": {<fields>}}'
+```
+
+**Examples:**
+
+```bash
+# List all habits
+habit-sprint --json '{"action": "list_habits", "payload": {}}'
+
+# Create a habit
+habit-sprint --json '{"action": "create_habit", "payload": {"id": "reading", "name": "Reading", "category": "cognitive", "target_per_week": 5, "weight": 2}}'
+
+# Sprint dashboard with markdown rendering
+habit-sprint --json '{"action": "sprint_dashboard", "payload": {}}' --format markdown
+```
+
+**Options:**
+
+| Flag | Description | Default |
+|---|---|---|
+| `--json` | JSON action string to execute | (required) |
+| `--db` | Path to SQLite database | `~/.habit-sprint/habits.db` |
+| `--format` | Output format: `json` or `markdown` | `json` |
+
+The CLI also accepts JSON via stdin pipe: `echo '{"action": "list_habits"}' | habit-sprint`
+
+---
+
+## Global vs Sprint-Scoped Habits
+
+Habits have two scopes controlled by the `sprint_id` field in `create_habit`:
+
+### Global habits (`sprint_id` omitted or null)
+
+Ongoing habits that persist across all sprints. The engine automatically includes them in every sprint's queries, reports, and dashboards. They never need to be re-created between sprints.
+
+**Use for:** Habits that are part of your established routine or long-term commitments — things you intend to maintain indefinitely regardless of what sprint theme you're running.
+
+**Examples:** Weightlifting 3x/week, daily reading, morning cardio, meditation, journaling.
+
+```json
+{"action": "create_habit", "payload": {"id": "weightlifting", "name": "Weightlifting", "category": "fitness", "target_per_week": 3, "weight": 2}}
+```
+
+### Sprint-scoped habits (`sprint_id` set to a specific sprint)
+
+Temporary habits tied to a single sprint. They only appear in that sprint's queries and reports. Once the sprint ends, they stop showing up in future sprints automatically.
+
+**Use for:** Experiments, challenges, or short-term goals you want to try for one cycle without cluttering your long-term tracking. If a sprint-scoped habit sticks, you can create a new global version of it.
+
+**Examples:** "Cold plunge challenge", "No sugar for 2 weeks", "Write 500 words daily" (trial run), "Practice Spanish 15 min" (testing if it fits your routine).
+
+```json
+{"action": "create_habit", "payload": {"id": "cold-plunge", "name": "Cold Plunge Challenge", "category": "health", "target_per_week": 5, "weight": 1, "sprint_id": "2026-S05"}}
+```
+
+### How to choose
+
+| Signal | Scope |
+|---|---|
+| "I want to track this from now on" | Global |
+| "I've been doing this for a while, it's part of my routine" | Global |
+| "Let me try this for a sprint and see" | Sprint-scoped |
+| "Just for this two-week cycle" | Sprint-scoped |
+| User doesn't specify | Default to **global** — most habits are intended to persist |
+
+### Querying behavior
+
+When reporting functions receive a `sprint_id`, they return **both** sprint-scoped habits for that sprint **and** all global habits. This means global habits are always visible in every sprint's dashboard, reports, and scores without any extra configuration.
 
 ---
 

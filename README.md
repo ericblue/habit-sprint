@@ -131,10 +131,26 @@ graph TD
 
 - Python 3.12+
 
+## Quick Start (LLM Skill)
+
+If you want your AI assistant (Claude Code, OpenClaw, etc.) to manage your habits through natural language:
+
+```bash
+git clone https://github.com/ericblue/habit-sprint.git
+cd habit-sprint
+make install-global           # Install CLI on your PATH
+make claude-skill-install     # Install the LLM skill (or openclaw-skill-install)
+```
+
+Start a new Claude Code session and ask about your habits. The database is created automatically at `~/.habit-sprint/habits.db`.
+
 ## Installation
 
 ```bash
-# Quick install
+# Global install — puts habit-sprint on your PATH (recommended for LLM skill usage)
+make install-global
+
+# Local venv install — for development, puts binary at .venv/bin/habit-sprint
 make install
 
 # With dev dependencies (pytest)
@@ -144,13 +160,17 @@ make install-dev
 Or manually:
 
 ```bash
+# Global
+pip install -e .
+
+# Local venv
 python3 -m venv .venv
 .venv/bin/pip install -e .
 ```
 
 ## LLM Skill Installation
 
-Install the skill so your AI assistant can drive the engine directly:
+The skill teaches your AI assistant all 22 actions, payload schemas, and constraints. It requires the `habit-sprint` CLI to be on your PATH (`make install-global`).
 
 ```bash
 # Claude Code
@@ -167,7 +187,7 @@ make openclaw-skill-uninstall # Remove skill
 make openclaw-skill-install OPENCLAW_SKILLS_DIR=/path/to/skills
 ```
 
-Once installed, the skill teaches the assistant all 22 actions, payload schemas, and constraints. See [SKILLS.md](SKILLS.md) for the full reference.
+See [SKILLS.md](SKILLS.md) for the full skill reference.
 
 ## CLI Usage
 
@@ -245,6 +265,7 @@ Run `make help` to see all available targets:
 
 | Target | Description |
 |--------|-------------|
+| `make install-global` | Install globally on PATH (recommended for LLM skill usage) |
 | `make install` | Create venv and install in editable mode |
 | `make install-dev` | Install with dev dependencies (pytest) |
 | `make test` | Run pytest |

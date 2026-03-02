@@ -44,7 +44,7 @@ habit-sprint --json '{"action": "list_sprints"}'
 
 ## Database Initialization
 
-The database is created automatically on first use at `~/.habit-sprint/habits.db`. No explicit init step is needed.
+The database is created automatically on first use at `~/.habit-sprint/habits.db`. The directory is created if it doesn't exist. No explicit init step is needed.
 
 ### Use a custom database path
 
