@@ -280,6 +280,24 @@ Habit Sprint started as a spreadsheet template in 2012 — a simple grid for tra
 
 The core design principles from that original spreadsheet carried forward into this engine: minimum-days-per-week targets instead of all-or-nothing daily streaks, a weighted point system for behavioral leverage, category grouping, and built-in retrospectives as first-class citizens. What changed is the interface — instead of manually entering `1` into spreadsheet cells, the AI handles it through conversation.
 
+## Version History
+
+| Version   | Date       | Description     |
+| --------- | ---------- | --------------- |
+| **0.1.0** | 2026-03-01 | Initial release |
+
+### v0.1.0 — Initial Release
+
+- Sprint-based habit tracking with two-week cycles
+- 22 JSON actions: sprints, habits, entries, reporting, retrospectives
+- Weighted scoring system with category grouping
+- Global and sprint-scoped habits
+- Markdown dashboard rendering
+- LLM skill integration (Claude Code, OpenClaw)
+- CLI with JSON-in/JSON-out contract
+- SQLite persistence with automatic migrations
+- 682 tests
+
 ## About
 
 Created by [Eric Blue](https://about.ericblue.com)
