@@ -3,11 +3,12 @@
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -82,6 +83,49 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
 
     # Static files
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
+
+    @app.get("/", response_class=HTMLResponse)
+    async def dashboard(request: Request, week: Optional[int] = None):
+        """Render the dashboard for the active sprint."""
+        payload: dict = {}
+        if week is not None:
+            payload["week"] = week
+        result = execute({"action": "sprint_dashboard", "payload": payload}, db_path)
+
+        if result["status"] == "error":
+            # No active sprint — render empty dashboard
+            return templates.TemplateResponse("dashboard.html", {
+                "request": request,
+                "active_nav": "dashboard",
+                "data": None,
+                "dates": [],
+                "week": week,
+            })
+
+        data = result["data"]
+
+        # Build date objects for template iteration
+        sprint_start = date.fromisoformat(data["sprint"]["start_date"])
+        sprint_end = date.fromisoformat(data["sprint"]["end_date"])
+        if week is not None:
+            ws = sprint_start + timedelta(days=(week - 1) * 7)
+            we = min(ws + timedelta(days=6), sprint_end)
+        else:
+            ws = sprint_start
+            we = sprint_end
+        view_dates = []
+        d = ws
+        while d <= we:
+            view_dates.append(d)
+            d += timedelta(days=1)
+
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            "active_nav": "dashboard",
+            "data": data,
+            "dates": view_dates,
+            "week": week,
+        })
 
     @app.get("/health")
     async def health() -> dict:

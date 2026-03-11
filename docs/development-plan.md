@@ -411,13 +411,13 @@ web.py  ─┘
 - [x] Error responses use appropriate HTTP status codes
 
 **6.3 - Dashboard page**
-- [ ] `GET /` renders the dashboard for the active sprint
-- [ ] Grid layout: rows = habits (grouped by category), columns = dates in sprint
-- [ ] Each cell shows a checkbox (checked if entry exists with value > 0)
-- [ ] Category headers separate habit groups
-- [ ] Daily totals row at the bottom (points / max)
-- [ ] Sprint summary sidebar or header (weighted score, days elapsed/remaining)
-- [ ] Week 1 / Week 2 tab or toggle
+- [x] `GET /` renders the dashboard for the active sprint
+- [x] Grid layout: rows = habits (grouped by category), columns = dates in sprint
+- [x] Each cell shows a checkbox (checked if entry exists with value > 0)
+- [x] Category headers separate habit groups
+- [x] Daily totals row at the bottom (points / max)
+- [x] Sprint summary sidebar or header (weighted score, days elapsed/remaining)
+- [x] Week 1 / Week 2 tab or toggle
 
 **6.4 - Checkbox toggle interaction**
 - [ ] Checkbox uses `hx-post="/api/log"` or `hx-delete="/api/log"` based on current state
