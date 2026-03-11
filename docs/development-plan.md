@@ -450,10 +450,10 @@ web.py  ─┘
 - [ ] Dark/light mode support via `prefers-color-scheme`
 
 **6.8 - CLI integration**
-- [ ] `habit-sprint --web` starts uvicorn on `127.0.0.1:8000` (configurable via `--host` and `--port`)
-- [ ] Or: separate entry point `habit-sprint-web` registered in pyproject.toml
-- [ ] Uses the same `--db` flag for database path
-- [ ] Prints startup message with URL to open
+- [x] `habit-sprint --web` starts uvicorn on `127.0.0.1:8000` (configurable via `--host` and `--port`)
+- [x] Or: separate entry point `habit-sprint-web` registered in pyproject.toml
+- [x] Uses the same `--db` flag for database path
+- [x] Prints startup message with URL to open
 
 **6.9 - Web UI tests**
 - [ ] Use FastAPI `TestClient` for endpoint testing
