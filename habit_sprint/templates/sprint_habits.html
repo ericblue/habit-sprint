@@ -18,6 +18,7 @@
 
 <h2>Sprint Habits</h2>
 {% if sprint_habits %}
+<form method="post" action="/sprints/{{ sprint.id }}/habits/goals">
 <div class="card-list">
   {% for habit in sprint_habits %}
   <div class="card">
@@ -35,12 +36,38 @@
     </div>
     <div class="card-meta">
       <span>Category: <strong>{{ habit.category }}</strong></span>
-      <span>Target: <strong>{{ habit.target_per_week }}/week</strong></span>
-      <span>Weight: <strong>{{ habit.weight }}</strong></span>
+    </div>
+    <div class="card-meta" style="margin-top: 0.5rem; gap: 1rem;">
+      <input type="hidden" name="default_target_{{ habit.id }}" value="{{ habit.target_per_week }}">
+      <input type="hidden" name="default_weight_{{ habit.id }}" value="{{ habit.weight }}">
+      <label style="display: flex; align-items: center; gap: 0.35rem;">
+        Target/week:
+        <input type="number" name="goal_target_{{ habit.id }}" min="0" max="7"
+               value="{{ habit.goal_target if habit.goal_target is not none else habit.target_per_week }}"
+               style="width: 4rem; padding: 0.25rem 0.4rem; border-radius: 4px; border: 1px solid var(--border-color, #ccc);"
+               class="{% if habit.goal_target is not none and habit.goal_target != habit.target_per_week %}goal-override{% endif %}">
+        {% if habit.goal_target is not none and habit.goal_target != habit.target_per_week %}
+        <span class="goal-default-hint" title="Habit default: {{ habit.target_per_week }}/week">(default: {{ habit.target_per_week }})</span>
+        {% endif %}
+      </label>
+      <label style="display: flex; align-items: center; gap: 0.35rem;">
+        Weight:
+        <input type="number" name="goal_weight_{{ habit.id }}" min="1" max="10"
+               value="{{ habit.goal_weight if habit.goal_weight is not none else habit.weight }}"
+               style="width: 4rem; padding: 0.25rem 0.4rem; border-radius: 4px; border: 1px solid var(--border-color, #ccc);"
+               class="{% if habit.goal_weight is not none and habit.goal_weight != habit.weight %}goal-override{% endif %}">
+        {% if habit.goal_weight is not none and habit.goal_weight != habit.weight %}
+        <span class="goal-default-hint" title="Habit default: {{ habit.weight }}">(default: {{ habit.weight }})</span>
+        {% endif %}
+      </label>
     </div>
   </div>
   {% endfor %}
 </div>
+<div style="margin-top: 1rem;">
+  <button type="submit" class="btn btn-primary">Save Goals</button>
+</div>
+</form>
 {% else %}
 <p style="color: var(--text-secondary);">No habits scoped to this sprint yet. Add global habits below.</p>
 {% endif %}
@@ -73,4 +100,16 @@
 {% else %}
 <p style="color: var(--text-secondary);">No global habits available. All habits are already scoped to sprints.</p>
 {% endif %}
+
+<style>
+  .goal-override {
+    border-color: var(--primary, #4f46e5) !important;
+    background: var(--primary-bg, #eef2ff);
+  }
+  .goal-default-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #6b7280);
+    font-style: italic;
+  }
+</style>
 {% endblock %}

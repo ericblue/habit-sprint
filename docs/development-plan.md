@@ -633,10 +633,10 @@ CREATE TABLE sprint_habit_goals (
 - [ ] Script is idempotent (safe to run multiple times)
 
 **8.5 - Web UI: per-sprint goal editing**
-- [ ] Sprint habits management page shows target_per_week and weight columns with editable inputs
-- [ ] "Save Goals" action calls set_sprint_habit_goal for each modified habit
-- [ ] Dashboard displays sprint-specific targets in the Done column (e.g., "3/5" using sprint goal, not habit default)
-- [ ] Habit cards on sprint habits page show effective vs default values when they differ
+- [x] Sprint habits management page shows target_per_week and weight columns with editable inputs
+- [x] "Save Goals" action calls set_sprint_habit_goal for each modified habit
+- [x] Dashboard displays sprint-specific targets in the Done column (e.g., "3/5" using sprint goal, not habit default)
+- [x] Habit cards on sprint habits page show effective vs default values when they differ
 
 **8.6 - Epic 8 tests**
 - [ ] Test set/get/delete sprint_habit_goals round-trip

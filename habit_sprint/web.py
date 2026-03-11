@@ -535,6 +535,25 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         sprint_habits_list = [h for h in all_habits if h.get("sprint_id") == sprint_id]
         global_habits_list = [h for h in all_habits if not h.get("sprint_id")]
 
+        # Fetch sprint_habit_goals for all habits in the sprint
+        conn = get_connection(request.app.state.db_path)
+        all_sprint_habit_ids = [h["id"] for h in sprint_habits_list + global_habits_list]
+        goals_map: dict = {}
+        if all_sprint_habit_ids:
+            placeholders = ",".join("?" * len(all_sprint_habit_ids))
+            goal_rows = conn.execute(
+                f"SELECT habit_id, target_per_week, weight FROM sprint_habit_goals "
+                f"WHERE sprint_id = ? AND habit_id IN ({placeholders})",
+                (sprint_id, *all_sprint_habit_ids),
+            ).fetchall()
+            goals_map = {r["habit_id"]: dict(r) for r in goal_rows}
+
+        # Annotate habits with sprint goal overrides
+        for h in sprint_habits_list + global_habits_list:
+            goal = goals_map.get(h["id"])
+            h["goal_target"] = goal["target_per_week"] if goal else None
+            h["goal_weight"] = goal["weight"] if goal else None
+
         return templates.TemplateResponse("sprint_habits.html", {
             "request": request,
             "sprint": sprint,
@@ -543,6 +562,53 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             "active_nav": "sprints",
             "success_message": request.query_params.get("msg"),
         })
+
+    @app.post("/sprints/{sprint_id}/habits/goals")
+    async def sprint_habits_save_goals(request: Request, sprint_id: str):
+        """Save per-sprint goal overrides for habits."""
+        form = await request.form()
+        # Form fields: goal_target_{habit_id}, goal_weight_{habit_id}
+        # Only process habits that have goal fields submitted
+        habit_ids = set()
+        for key in form.keys():
+            if key.startswith("goal_target_"):
+                habit_ids.add(key[len("goal_target_"):])
+
+        for habit_id in habit_ids:
+            target_str = form.get(f"goal_target_{habit_id}", "").strip()
+            weight_str = form.get(f"goal_weight_{habit_id}", "").strip()
+            default_target_str = form.get(f"default_target_{habit_id}", "")
+            default_weight_str = form.get(f"default_weight_{habit_id}", "")
+
+            if not target_str or not weight_str:
+                continue
+
+            target = int(target_str)
+            weight = int(weight_str)
+            default_target = int(default_target_str) if default_target_str else None
+            default_weight = int(default_weight_str) if default_weight_str else None
+
+            # Only save if values differ from defaults (or goal already exists)
+            if target == default_target and weight == default_weight:
+                # Remove any existing override since it matches defaults
+                execute(
+                    {"action": "delete_sprint_habit_goal", "payload": {
+                        "sprint_id": sprint_id, "habit_id": habit_id,
+                    }},
+                    request.app.state.db_path,
+                )
+            else:
+                execute(
+                    {"action": "set_sprint_habit_goal", "payload": {
+                        "sprint_id": sprint_id, "habit_id": habit_id,
+                        "target_per_week": target, "weight": weight,
+                    }},
+                    request.app.state.db_path,
+                )
+
+        return RedirectResponse(
+            url=f"/sprints/{sprint_id}/habits?msg=Sprint+goals+saved", status_code=303,
+        )
 
     @app.post("/sprints/{sprint_id}/habits/add")
     async def sprint_habit_add(request: Request, sprint_id: str, habit_id: str = Form(...)):
