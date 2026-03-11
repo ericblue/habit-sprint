@@ -240,7 +240,12 @@ form.inline { display: inline; }
   min-width: 0;
 }
 .progress-bar-success { background: var(--success); }
+.progress-bar-warning { background: #d97706; }
 .progress-bar-danger { background: var(--danger); }
+
+/* Thin progress bar for table cells */
+.progress-sm { height: 5px; margin-top: 0.25rem; }
+.progress-inline { min-width: 50px; }
 
 .progress-label {
   display: flex;
