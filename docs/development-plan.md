@@ -478,7 +478,7 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - [ ] Habit form includes weight (1-3) selector and sprint scope (global vs current sprint) field
 - [x] Sprint detail page allows editing theme and focus goals
 - [ ] Sprint detail page allows creating/editing retrospectives
-- [ ] Dedicated sprint habits page shows which habits are in a sprint and allows adding/removing them
+- [x] Dedicated sprint habits page shows which habits are in a sprint and allows adding/removing them
 - [ ] Dashboard shows visual progress indicators (completion bars)
 - [ ] All new features have passing tests
 
@@ -527,12 +527,12 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - [ ] Only allows retro editing for active sprints (or make configurable)
 
 **7.5 - Sprint habits management page**
-- [ ] `GET /sprints/{id}/habits` shows two sections: "Sprint Habits" and "Available Global Habits"
-- [ ] Sprint habits section lists habits with sprint_id matching this sprint, with "Remove from Sprint" action
-- [ ] Available habits section lists global habits (sprint_id IS NULL) with "Add to Sprint" action
-- [ ] "Add to Sprint" calls update_habit to set sprint_id; "Remove" sets sprint_id to null
-- [ ] Shows habit weight, target_per_week, and category for each habit
-- [ ] Sprint detail page links to this management page
+- [x] `GET /sprints/{id}/habits` shows two sections: "Sprint Habits" and "Available Global Habits"
+- [x] Sprint habits section lists habits with sprint_id matching this sprint, with "Remove from Sprint" action
+- [x] Available habits section lists global habits (sprint_id IS NULL) with "Add to Sprint" action
+- [x] "Add to Sprint" calls update_habit to set sprint_id; "Remove" sets sprint_id to null
+- [x] Shows habit weight, target_per_week, and category for each habit
+- [x] Sprint detail page links to this management page
 
 **7.6 - Dashboard progress indicators**
 - [ ] Per-habit row shows a thin completion bar (actual/target) in the "Done" column

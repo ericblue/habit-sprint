@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Manage Habits - Sprint {{ sprint.id }} - Habit Sprint{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Manage Habits</h1>
+  <a href="/sprints/{{ sprint.id }}" class="btn btn-outline">&larr; Back to Sprint</a>
+</div>
+
+<p style="margin-bottom: 1.5rem; color: var(--text-secondary);">
+  {{ sprint.theme or "Sprint " ~ sprint.id }} &mdash; {{ sprint.start_date }} to {{ sprint.end_date }}
+</p>
+
+{% if success_message %}
+<div class="alert alert-success" style="margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--success-bg, #d4edda); border-radius: 6px; color: var(--success-text, #155724);">
+  {{ success_message }}
+</div>
+{% endif %}
+
+<h2>Sprint Habits</h2>
+{% if sprint_habits %}
+<div class="card-list">
+  {% for habit in sprint_habits %}
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">{{ habit.name }}</div>
+        <code>{{ habit.id }}</code>
+      </div>
+      <div class="card-actions">
+        <form method="post" action="/sprints/{{ sprint.id }}/habits/remove" class="inline">
+          <input type="hidden" name="habit_id" value="{{ habit.id }}">
+          <button type="submit" class="btn btn-sm btn-danger">Remove from Sprint</button>
+        </form>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span>Category: <strong>{{ habit.category }}</strong></span>
+      <span>Target: <strong>{{ habit.target_per_week }}/week</strong></span>
+      <span>Weight: <strong>{{ habit.weight }}</strong></span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p style="color: var(--text-secondary);">No habits scoped to this sprint yet. Add global habits below.</p>
+{% endif %}
+
+<h2 style="margin-top: 2rem;">Available Global Habits</h2>
+{% if global_habits %}
+<div class="card-list">
+  {% for habit in global_habits %}
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">{{ habit.name }}</div>
+        <code>{{ habit.id }}</code>
+      </div>
+      <div class="card-actions">
+        <form method="post" action="/sprints/{{ sprint.id }}/habits/add" class="inline">
+          <input type="hidden" name="habit_id" value="{{ habit.id }}">
+          <button type="submit" class="btn btn-sm btn-primary">Add to Sprint</button>
+        </form>
+      </div>
+    </div>
+    <div class="card-meta">
+      <span>Category: <strong>{{ habit.category }}</strong></span>
+      <span>Target: <strong>{{ habit.target_per_week }}/week</strong></span>
+      <span>Weight: <strong>{{ habit.weight }}</strong></span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p style="color: var(--text-secondary);">No global habits available. All habits are already scoped to sprints.</p>
+{% endif %}
+{% endblock %}

@@ -29,6 +29,7 @@
 {% if sprint.status == "active" %}
 <p style="margin-top: 1rem;">
     <a href="/sprints/{{ sprint.id }}/edit" class="btn btn-primary">Edit Sprint</a>
+    <a href="/sprints/{{ sprint.id }}/habits" class="btn btn-outline">Manage Habits</a>
     <form class="inline" method="post" action="/sprints/{{ sprint.id }}/archive">
         <button type="submit" class="btn btn-danger">Archive Sprint</button>
     </form>
