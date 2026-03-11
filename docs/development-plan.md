@@ -420,11 +420,11 @@ web.py  ─┘
 - [x] Week 1 / Week 2 tab or toggle
 
 **6.4 - Checkbox toggle interaction**
-- [ ] Checkbox uses `hx-post="/api/log"` or `hx-delete="/api/log"` based on current state
-- [ ] Server returns updated cell HTML fragment (htmx swap)
-- [ ] Daily totals row updates after toggle
-- [ ] Visual feedback on toggle (brief highlight or transition)
-- [ ] Handles errors gracefully (shows toast or inline message)
+- [x] Checkbox uses `hx-post="/toggle/{habit_id}/{date}"` to toggle state (checks current and POSTs or DELETEs)
+- [x] Server returns updated cell HTML fragment (htmx swap)
+- [x] Daily totals row updates after toggle (via hx-swap-oob)
+- [x] Visual feedback on toggle (brief highlight/transition on cell background)
+- [x] Handles errors gracefully (shows toast via HX-Trigger header)
 
 **6.5 - Habit management page**
 - [x] `GET /habits` renders list of all habits with edit/archive actions

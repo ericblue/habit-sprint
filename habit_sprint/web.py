@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -365,5 +365,73 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
     async def archive_sprint(request: Request, sprint_id: str):
         execute({"action": "archive_sprint", "payload": {"sprint_id": sprint_id}}, request.app.state.db_path)
         return RedirectResponse(url="/sprints", status_code=303)
+
+    # --- Checkbox toggle endpoint (htmx) ---
+
+    @app.post("/toggle/{habit_id}/{toggle_date}")
+    async def toggle_habit(request: Request, habit_id: str, toggle_date: str, week: Optional[int] = None):
+        """Toggle a habit entry and return updated HTML fragments."""
+        db = request.app.state.db_path
+
+        # Check current state via entries table
+        conn = get_connection(db)
+        row = conn.execute(
+            "SELECT value FROM entries WHERE habit_id = ? AND date = ?",
+            (habit_id, toggle_date),
+        ).fetchone()
+
+        if row and row[0] > 0:
+            # Currently checked → delete
+            result = execute({"action": "delete_entry", "payload": {"habit_id": habit_id, "date": toggle_date}}, db)
+        else:
+            # Currently unchecked → log
+            result = execute({"action": "log_date", "payload": {"habit_id": habit_id, "date": toggle_date, "value": 1}}, db)
+
+        if result["status"] == "error":
+            return Response(
+                content="",
+                status_code=422,
+                headers={"HX-Trigger": '{"showToast": "' + result["error"].replace('"', '\\"') + '"}'},
+            )
+
+        # Re-check new state
+        new_row = conn.execute(
+            "SELECT value FROM entries WHERE habit_id = ? AND date = ?",
+            (habit_id, toggle_date),
+        ).fetchone()
+        checked = bool(new_row and new_row[0] > 0)
+
+        # Build the checkbox cell HTML
+        checked_attr = " checked" if checked else ""
+        cell_id = f"cell-{habit_id}-{toggle_date}"
+        week_param = f"?week={week}" if week is not None else ""
+        cell_html = (
+            f'<td id="{cell_id}" class="toggle-cell just-toggled">'
+            f'<input type="checkbox"{checked_attr}'
+            f' hx-post="/toggle/{habit_id}/{toggle_date}{week_param}"'
+            f' hx-target="#{cell_id}"'
+            f' hx-swap="outerHTML"'
+            f' data-habit-id="{habit_id}"'
+            f' data-date="{toggle_date}"'
+            f">"
+            f"</td>"
+        )
+
+        # Compute updated daily total for this date (OOB swap)
+        dashboard_result = execute(
+            {"action": "sprint_dashboard", "payload": ({"week": week} if week is not None else {})},
+            db,
+        )
+        oob_html = ""
+        if dashboard_result["status"] == "success":
+            tot = dashboard_result["data"]["daily_totals"].get(toggle_date, {"points": 0, "max": 0})
+            total_id = f"total-{toggle_date}"
+            oob_html = (
+                f'<td id="{total_id}" class="pct-cell" hx-swap-oob="true">'
+                f'{int(tot["points"])}/{int(tot["max"])}'
+                f"</td>"
+            )
+
+        return HTMLResponse(content=cell_html + oob_html)
 
     return app

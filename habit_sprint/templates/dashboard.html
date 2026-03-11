@@ -21,6 +21,13 @@
   .pct-cell { font-size: 0.75rem; color: #888; }
   .no-sprint { text-align: center; padding: 3rem; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
   .no-sprint p { margin-bottom: 1rem; color: #666; }
+  /* Toggle visual feedback */
+  .toggle-cell { transition: background-color 0.4s ease; }
+  .just-toggled { background-color: #dbeafe; }
+  /* Toast notification */
+  #toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 1000; }
+  .toast { background: #f8d7da; color: #721c24; padding: 0.75rem 1.25rem; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); margin-bottom: 0.5rem; font-size: 0.875rem; animation: toast-fade 3s forwards; }
+  @keyframes toast-fade { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 </style>
 {% endblock %}
 
@@ -75,9 +82,12 @@
       {% for d in dates %}
       {% set ds = d.isoformat() %}
       {% set val = habit.daily.get(ds, 0) %}
-      <td>
+      <td id="cell-{{ habit.habit_id }}-{{ ds }}" class="toggle-cell">
         <input type="checkbox"
                {% if val > 0 %}checked{% endif %}
+               hx-post="/toggle/{{ habit.habit_id }}/{{ ds }}{% if week is not none %}?week={{ week }}{% endif %}"
+               hx-target="#cell-{{ habit.habit_id }}-{{ ds }}"
+               hx-swap="outerHTML"
                data-habit-id="{{ habit.habit_id }}"
                data-date="{{ ds }}"
         >
@@ -94,7 +104,7 @@
       {% for d in dates %}
       {% set ds = d.isoformat() %}
       {% set tot = data.daily_totals.get(ds, {"points": 0, "max": 0, "pct": 0}) %}
-      <td class="pct-cell">{{ tot.points }}/{{ tot.max }}</td>
+      <td id="total-{{ ds }}" class="pct-cell">{{ tot.points|int }}/{{ tot.max|int }}</td>
       {% endfor %}
       <td></td>
     </tr>
@@ -103,4 +113,26 @@
 </div>
 
 {% endif %}
+
+<div id="toast-container"></div>
+
+<script>
+  // Clear the toggle highlight after animation
+  document.body.addEventListener("htmx:afterSwap", function(e) {
+    var el = e.detail.target;
+    if (el && el.classList && el.classList.contains("just-toggled")) {
+      setTimeout(function() { el.classList.remove("just-toggled"); }, 500);
+    }
+  });
+
+  // Show toast on error
+  document.body.addEventListener("showToast", function(e) {
+    var msg = e.detail.value || "An error occurred";
+    var toast = document.createElement("div");
+    toast.className = "toast";
+    toast.textContent = msg;
+    document.getElementById("toast-container").appendChild(toast);
+    setTimeout(function() { toast.remove(); }, 3200);
+  });
+</script>
 {% endblock %}
