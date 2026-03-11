@@ -2,7 +2,7 @@
 
 > **Generated from:** docs/prd.md
 > **Created:** 2026-03-01
-> **Last synced:** 2026-03-11
+> **Last synced:** 2026-03-10
 > **Status:** Active Planning Document
 > **VibeKanban Project ID:** 9c59dcf5-0dc3-4305-855b-9b9432dd88c2
 
@@ -45,6 +45,7 @@ Habit Sprint is a deterministic, JSON-native sprint-based habit tracking engine 
 | 4. CLI Adapter | Done | 100% |
 | 5. LLM Skill Layer | Done | 100% |
 | 6. Web UI | Done | 100% |
+| 7. Web UI Polish & Sprint Habit Management | Not Started | 0% |
 
 ---
 
@@ -465,6 +466,94 @@ web.py  ─┘
 
 ---
 
+## Epic 7: Web UI Polish & Sprint Habit Management (NOT STARTED)
+
+Polish the web UI with improved visual design and add missing sprint-habit management features: habit weight/sprint scope in forms, sprint editing, retrospective editing, and a sprint habits management page for adding/removing habits from sprints.
+
+**Motivation:** The web UI is functional but visually basic. Key engine features (sprint-scoped habits, habit weights, sprint editing, retro editing) are not yet exposed in the UI.
+
+### Acceptance Criteria
+
+- [ ] UI has polished visual design with better typography, card layouts, progress indicators, and smooth transitions
+- [ ] Habit form includes weight (1-3) selector and sprint scope (global vs current sprint) field
+- [ ] Sprint detail page allows editing theme and focus goals
+- [ ] Sprint detail page allows creating/editing retrospectives
+- [ ] Dedicated sprint habits page shows which habits are in a sprint and allows adding/removing them
+- [ ] Dashboard shows visual progress indicators (completion bars)
+- [ ] All new features have passing tests
+
+### Tasks
+
+| ID | Title | Description | Priority | Complexity | Depends On | Status |
+|----|-------|-------------|----------|------------|------------|--------|
+| 7.1 | UI visual polish | Improve CSS: better typography, card-based list layouts, progress bars in dashboard, subtle hover/transition effects, improved form styling | High | M | 6.7 | <!-- vk:ERI-43 --> |
+| 7.2 | Habit sprint scope field | Add sprint_id field to habit create/edit form (global vs current sprint dropdown), update web.py handlers to pass sprint_id to executor | High | M | 6.5 | <!-- vk:ERI-44 --> |
+| 7.3 | Sprint edit page | Add GET/POST /sprints/{id}/edit endpoints and template for editing sprint theme and focus_goals via update_sprint | Medium | S | 6.6 | <!-- vk:ERI-45 --> |
+| 7.4 | Sprint retro editing | Add retro form to sprint detail page, POST /sprints/{id}/retro endpoint that calls add_retro executor action | Medium | M | 6.6 | <!-- vk:ERI-46 --> |
+| 7.5 | Sprint habits management page | Dedicated page at /sprints/{id}/habits showing habits in sprint + global habits, with add/remove actions (update_habit sprint_id) | High | L | 7.2 | <!-- vk:ERI-47 --> |
+| 7.6 | Dashboard progress indicators | Add visual completion bars per habit and per category in the dashboard grid, streak indicators, and overall sprint progress bar in header | Medium | M | 7.1 | <!-- vk:ERI-48 --> |
+| 7.7 | Epic 7 tests | Tests for all new endpoints: sprint edit, retro edit, habit sprint scope, sprint habits management, progress bar rendering | Medium | M | 7.2, 7.3, 7.4, 7.5, 7.6 | <!-- vk:ERI-49 --> |
+
+### Task Details
+
+**7.1 - UI visual polish**
+- [ ] Improve base typography: better font sizing hierarchy, line heights, letter spacing
+- [ ] Card-based layouts for habits list and sprints list (replace plain tables with styled cards or enhanced table rows)
+- [ ] Improved form styling: better input focus states, field grouping, helper text
+- [ ] Add subtle hover effects on table rows and cards
+- [ ] Smooth transitions on checkbox toggle, note popover open/close
+- [ ] Better mobile responsive layout with collapsible navigation
+- [ ] Progress bar CSS component (reusable for dashboard and sprint detail)
+
+**7.2 - Habit sprint scope field**
+- [ ] Add "Sprint Scope" dropdown to habit form: "Global (all sprints)" or current active sprint name
+- [ ] When creating habit, pass `sprint_id` to executor if sprint-scoped is selected
+- [ ] When editing habit, show current sprint scope and allow changing it
+- [ ] Habits list page shows sprint scope column (Global or sprint ID)
+- [ ] Form pre-fills sprint scope correctly when editing
+
+**7.3 - Sprint edit page**
+- [ ] `GET /sprints/{id}/edit` renders edit form pre-filled with current theme and focus_goals
+- [ ] `POST /sprints/{id}/edit` calls `update_sprint` executor action
+- [ ] Sprint detail page has "Edit" button linking to edit form
+- [ ] Sprints list page has "Edit" action for active sprints
+- [ ] Handles validation errors (preserves form values on error)
+
+**7.4 - Sprint retro editing**
+- [ ] Sprint detail page shows retro form (inline or separate page) with what_went_well, what_to_improve, ideas textareas
+- [ ] `POST /sprints/{id}/retro` calls `add_retro` executor action (upsert behavior)
+- [ ] Pre-fills form with existing retro data when editing
+- [ ] Success message shown after saving retro
+- [ ] Only allows retro editing for active sprints (or make configurable)
+
+**7.5 - Sprint habits management page**
+- [ ] `GET /sprints/{id}/habits` shows two sections: "Sprint Habits" and "Available Global Habits"
+- [ ] Sprint habits section lists habits with sprint_id matching this sprint, with "Remove from Sprint" action
+- [ ] Available habits section lists global habits (sprint_id IS NULL) with "Add to Sprint" action
+- [ ] "Add to Sprint" calls update_habit to set sprint_id; "Remove" sets sprint_id to null
+- [ ] Shows habit weight, target_per_week, and category for each habit
+- [ ] Sprint detail page links to this management page
+
+**7.6 - Dashboard progress indicators**
+- [ ] Per-habit row shows a thin completion bar (actual/target) in the "Done" column
+- [ ] Category row shows category weighted score as a progress bar
+- [ ] Sprint header shows overall weighted score as a prominent progress bar
+- [ ] Color coding: green for on-track (>=80%), yellow for warning (50-79%), red for behind (<50%)
+- [ ] Progress bars are CSS-only (no JS), using inline width styles
+
+**7.7 - Epic 7 tests**
+- [ ] Test sprint edit form renders with pre-filled values
+- [ ] Test sprint edit POST updates theme and focus_goals
+- [ ] Test retro form renders (empty and pre-filled)
+- [ ] Test retro POST creates/updates retro data
+- [ ] Test habit form includes sprint scope field
+- [ ] Test habit create with sprint_id sets sprint scope correctly
+- [ ] Test sprint habits page lists correct habits per section
+- [ ] Test add/remove habit from sprint via management page
+- [ ] Test dashboard progress bars render with correct percentages
+
+---
+
 ## Dependencies
 
 - Python 3.12+
@@ -518,3 +607,4 @@ web.py  ─┘
 - **2026-03-10**: Added Epic 6 (Web UI) — 9 tasks for lightweight web interface with FastAPI + htmx. Moved Web UI and HTTP API out of "Out of Scope".
 - **2026-03-10**: Synced with VibeKanban — created Epic 6 (ERI-32) and 9 tasks (ERI-33 through ERI-41). All Epics 1-5 confirmed Done. 26/35 tasks complete, 9 new tasks in To do.
 - **2026-03-11**: Autonomous work loop completed Epic 6 (Web UI) in 5 iterations. All 9/9 tasks done, 4 merge conflicts auto-resolved, 1 test fix. All 6 epics complete. 682 tests passing + 1 skipped (optional web dep).
+- **2026-03-10**: Added Epic 7 (Web UI Polish & Sprint Habit Management) — 7 tasks for UI polish, habit sprint scope, sprint editing, retro editing, sprint habits management, dashboard progress indicators. Created VK epic ERI-42 and tasks ERI-43 through ERI-49.
