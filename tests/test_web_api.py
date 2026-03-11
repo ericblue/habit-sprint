@@ -1,6 +1,8 @@
 """Tests for the web API endpoints (task 6.2)."""
 
 import pytest
+
+fastapi = pytest.importorskip("fastapi", reason="fastapi not installed (optional web dependency)")
 from fastapi.testclient import TestClient
 
 from habit_sprint.web import create_app
