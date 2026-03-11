@@ -480,7 +480,7 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - [ ] Sprint detail page allows creating/editing retrospectives
 - [x] Dedicated sprint habits page shows which habits are in a sprint and allows adding/removing them
 - [ ] Dashboard shows visual progress indicators (completion bars)
-- [ ] All new features have passing tests
+- [x] All new features have passing tests
 
 ### Tasks
 
@@ -542,15 +542,15 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - [x] Progress bars are CSS-only (no JS), using inline width styles
 
 **7.7 - Epic 7 tests**
-- [ ] Test sprint edit form renders with pre-filled values
-- [ ] Test sprint edit POST updates theme and focus_goals
-- [ ] Test retro form renders (empty and pre-filled)
-- [ ] Test retro POST creates/updates retro data
-- [ ] Test habit form includes sprint scope field
-- [ ] Test habit create with sprint_id sets sprint scope correctly
-- [ ] Test sprint habits page lists correct habits per section
-- [ ] Test add/remove habit from sprint via management page
-- [ ] Test dashboard progress bars render with correct percentages
+- [x] Test sprint edit form renders with pre-filled values
+- [x] Test sprint edit POST updates theme and focus_goals
+- [x] Test retro form renders (empty and pre-filled)
+- [x] Test retro POST creates/updates retro data
+- [x] Test habit form includes sprint scope field
+- [x] Test habit create with sprint_id sets sprint scope correctly
+- [x] Test sprint habits page lists correct habits per section
+- [x] Test add/remove habit from sprint via management page
+- [x] Test dashboard progress bars render with correct percentages
 
 ---
 

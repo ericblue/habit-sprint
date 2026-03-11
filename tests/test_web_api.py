@@ -516,3 +516,330 @@ class TestConcurrentAccess:
             for habit in cat["habits"]:
                 if habit["habit_id"] == "exercise":
                     assert habit["daily"].get("2026-03-10", 0) > 0
+
+
+# ── Epic 7 tests ─────────────────────────────────────────────────────────
+
+
+class TestSprintEditForm:
+    """Test GET/POST /sprints/{id}/edit (task 7.3)."""
+
+    def test_edit_form_renders_prefilled(self, web_client):
+        """Sprint edit form renders with pre-filled theme and focus_goals."""
+        sprints_resp = web_client.get("/api/sprints")
+        sprint_id = sprints_resp.json()["data"]["sprints"][0]["id"]
+
+        # Set theme and goals first
+        web_client.post(f"/sprints/{sprint_id}/edit", data={
+            "theme": "Deep Work", "focus_goals": "Goal A\nGoal B",
+        }, follow_redirects=False)
+
+        resp = web_client.get(f"/sprints/{sprint_id}/edit")
+        assert resp.status_code == 200
+        assert "Edit Sprint" in resp.text
+        assert "Deep Work" in resp.text
+        assert "Goal A" in resp.text
+        assert "Goal B" in resp.text
+
+    def test_edit_form_hides_date_fields(self, web_client):
+        """Edit form should not show start_date/end_date inputs."""
+        sprints_resp = web_client.get("/api/sprints")
+        sprint_id = sprints_resp.json()["data"]["sprints"][0]["id"]
+
+        resp = web_client.get(f"/sprints/{sprint_id}/edit")
+        assert resp.status_code == 200
+        assert "Update Sprint" in resp.text
+
+    def test_edit_post_updates_theme_and_goals(self, web_client):
+        """POST to sprint edit updates theme and focus_goals."""
+        sprints_resp = web_client.get("/api/sprints")
+        sprint_id = sprints_resp.json()["data"]["sprints"][0]["id"]
+
+        resp = web_client.post(f"/sprints/{sprint_id}/edit", data={
+            "theme": "Productivity Sprint",
+            "focus_goals": "Read more\nExercise daily",
+        }, follow_redirects=False)
+        assert resp.status_code == 303
+        assert f"/sprints/{sprint_id}" in resp.headers["location"]
+
+        # Verify changes persisted
+        detail_resp = web_client.get(f"/sprints/{sprint_id}")
+        assert "Productivity Sprint" in detail_resp.text
+        assert "Read more" in detail_resp.text
+        assert "Exercise daily" in detail_resp.text
+
+    def test_edit_nonexistent_sprint_redirects(self, web_client):
+        resp = web_client.get("/sprints/no-such-sprint/edit", follow_redirects=False)
+        assert resp.status_code == 303
+
+
+class TestSprintRetro:
+    """Test retro form rendering and POST /sprints/{id}/retro (task 7.4)."""
+
+    def test_retro_form_renders_empty(self, web_client):
+        """Sprint detail page shows retro form with empty fields."""
+        sprints_resp = web_client.get("/api/sprints")
+        sprint_id = sprints_resp.json()["data"]["sprints"][0]["id"]
+
+        resp = web_client.get(f"/sprints/{sprint_id}")
+        assert resp.status_code == 200
+        assert "Retrospective" in resp.text
+        assert 'name="what_went_well"' in resp.text
+        assert 'name="what_to_improve"' in resp.text
+        assert 'name="ideas"' in resp.text
+        assert "Save Retrospective" in resp.text
+
+    def test_retro_post_creates_retro(self, web_client):
+        """POST to retro endpoint creates retrospective data."""
+        sprints_resp = web_client.get("/api/sprints")
+        sprint_id = sprints_resp.json()["data"]["sprints"][0]["id"]
+
+        resp = web_client.post(f"/sprints/{sprint_id}/retro", data={
+            "what_went_well": "Consistent exercise",
+            "what_to_improve": "Sleep schedule",
+            "ideas": "Try meditation",
+        }, follow_redirects=False)
+        assert resp.status_code == 303
+        assert f"/sprints/{sprint_id}" in resp.headers["location"]
+
+    def test_retro_form_prefilled_after_save(self, web_client):
+        """After saving retro, the detail page shows pre-filled values."""
+        sprints_resp = web_client.get("/api/sprints")
+        sprint_id = sprints_resp.json()["data"]["sprints"][0]["id"]
+
+        # Save retro
+        web_client.post(f"/sprints/{sprint_id}/retro", data={
+            "what_went_well": "Great progress",
+            "what_to_improve": "Time management",
+            "ideas": "Use pomodoro",
+        }, follow_redirects=False)
+
+        # Check it's pre-filled on the detail page
+        resp = web_client.get(f"/sprints/{sprint_id}")
+        assert "Great progress" in resp.text
+        assert "Time management" in resp.text
+        assert "Use pomodoro" in resp.text
+
+    def test_retro_post_updates_existing(self, web_client):
+        """POST to retro endpoint twice should update (upsert) existing retro."""
+        sprints_resp = web_client.get("/api/sprints")
+        sprint_id = sprints_resp.json()["data"]["sprints"][0]["id"]
+
+        # First save
+        web_client.post(f"/sprints/{sprint_id}/retro", data={
+            "what_went_well": "Original",
+            "what_to_improve": "",
+            "ideas": "",
+        }, follow_redirects=False)
+
+        # Second save (update)
+        web_client.post(f"/sprints/{sprint_id}/retro", data={
+            "what_went_well": "Updated thoughts",
+            "what_to_improve": "More focus",
+            "ideas": "New idea",
+        }, follow_redirects=False)
+
+        resp = web_client.get(f"/sprints/{sprint_id}")
+        assert "Updated thoughts" in resp.text
+        assert "More focus" in resp.text
+        assert "New idea" in resp.text
+        # Original text should be replaced
+        assert "Original" not in resp.text
+
+
+class TestHabitSprintScope:
+    """Test habit form sprint scope field and create with sprint_id (task 7.2)."""
+
+    def test_habit_form_has_sprint_scope_field(self, web_client):
+        """New habit form includes sprint scope dropdown."""
+        resp = web_client.get("/habits/new")
+        assert resp.status_code == 200
+        assert "Sprint Scope" in resp.text
+        assert 'name="sprint_id"' in resp.text
+        assert "Global" in resp.text
+
+    def test_habit_form_shows_active_sprint_option(self, web_client):
+        """Sprint scope dropdown shows active sprint as an option."""
+        resp = web_client.get("/habits/new")
+        assert resp.status_code == 200
+        # The active sprint (sprint-one) should appear as an option
+        assert "sprint-one" in resp.text or "2026-03-02" in resp.text
+
+    def test_habit_create_with_sprint_id(self, web_client):
+        """Creating a habit with sprint_id sets sprint scope correctly."""
+        # Look up the actual auto-generated sprint ID
+        sprints_resp = web_client.get("/api/sprints")
+        sprint_id = sprints_resp.json()["data"]["sprints"][0]["id"]
+
+        resp = web_client.post("/habits", data={
+            "name": "Sprint Meditation", "id": "sprint-med",
+            "category": "wellness", "target_per_week": "3",
+            "weight": "1", "unit": "count", "sprint_id": sprint_id,
+        }, follow_redirects=False)
+        assert resp.status_code == 303
+
+        # Verify the habit has sprint_id set
+        habits_resp = web_client.get("/api/habits")
+        habits = habits_resp.json()["data"]["habits"]
+        med = next(h for h in habits if h["id"] == "sprint-med")
+        assert med["sprint_id"] == sprint_id
+
+    def test_habit_create_without_sprint_id(self, web_client):
+        """Creating a habit without sprint_id keeps it global."""
+        resp = web_client.post("/habits", data={
+            "name": "Global Habit", "id": "global-hab",
+            "category": "general", "target_per_week": "5",
+            "weight": "1", "unit": "count", "sprint_id": "",
+        }, follow_redirects=False)
+        assert resp.status_code == 303
+
+        habits_resp = web_client.get("/api/habits")
+        habits = habits_resp.json()["data"]["habits"]
+        glob = next(h for h in habits if h["id"] == "global-hab")
+        assert glob.get("sprint_id") is None
+
+    def test_habit_edit_form_shows_sprint_scope(self, web_client):
+        """Edit habit form shows sprint scope field with current value."""
+        resp = web_client.get("/habits/exercise/edit")
+        assert resp.status_code == 200
+        assert "Sprint Scope" in resp.text
+        assert 'name="sprint_id"' in resp.text
+
+
+class TestSprintHabitsManagement:
+    """Test sprint habits management page (task 7.5)."""
+
+    def _sprint_id(self, web_client):
+        return web_client.get("/api/sprints").json()["data"]["sprints"][0]["id"]
+
+    def test_sprint_habits_page_renders(self, web_client):
+        """GET /sprints/{id}/habits renders the management page."""
+        sid = self._sprint_id(web_client)
+        resp = web_client.get(f"/sprints/{sid}/habits")
+        assert resp.status_code == 200
+        assert "Manage Habits" in resp.text
+
+    def test_sprint_habits_lists_sections(self, web_client):
+        """Page shows Sprint Habits and Available Global Habits sections."""
+        sid = self._sprint_id(web_client)
+        resp = web_client.get(f"/sprints/{sid}/habits")
+        assert resp.status_code == 200
+        assert "Sprint Habits" in resp.text
+        assert "Global Habits" in resp.text or "Available" in resp.text
+
+    def test_global_habits_listed(self, web_client):
+        """Global habits appear in the available section."""
+        sid = self._sprint_id(web_client)
+        resp = web_client.get(f"/sprints/{sid}/habits")
+        assert resp.status_code == 200
+        # exercise and reading are global (no sprint_id)
+        assert "Exercise" in resp.text
+        assert "Read" in resp.text
+
+    def test_add_habit_to_sprint(self, web_client):
+        """POST to add moves a global habit into the sprint."""
+        sid = self._sprint_id(web_client)
+        resp = web_client.post(f"/sprints/{sid}/habits/add", data={
+            "habit_id": "exercise",
+        }, follow_redirects=False)
+        assert resp.status_code == 303
+
+        # Verify exercise is now a sprint habit
+        habits_resp = web_client.get("/api/habits")
+        habits = habits_resp.json()["data"]["habits"]
+        ex = next(h for h in habits if h["id"] == "exercise")
+        assert ex["sprint_id"] == sid
+
+    def test_remove_habit_from_sprint(self, web_client):
+        """POST to remove makes a sprint habit global again."""
+        sid = self._sprint_id(web_client)
+        # First add it
+        web_client.post(f"/sprints/{sid}/habits/add", data={
+            "habit_id": "exercise",
+        }, follow_redirects=False)
+
+        # Then remove it
+        resp = web_client.post(f"/sprints/{sid}/habits/remove", data={
+            "habit_id": "exercise",
+        }, follow_redirects=False)
+        assert resp.status_code == 303
+
+        # Verify exercise is global again
+        habits_resp = web_client.get("/api/habits")
+        habits = habits_resp.json()["data"]["habits"]
+        ex = next(h for h in habits if h["id"] == "exercise")
+        assert ex.get("sprint_id") is None
+
+    def test_sprint_habits_correct_sections_after_add(self, web_client):
+        """After adding a habit to sprint, it moves between sections."""
+        sid = self._sprint_id(web_client)
+        # Add exercise to sprint
+        web_client.post(f"/sprints/{sid}/habits/add", data={
+            "habit_id": "exercise",
+        }, follow_redirects=False)
+
+        resp = web_client.get(f"/sprints/{sid}/habits")
+        assert resp.status_code == 200
+        # Exercise should be in sprint section with Remove button
+        assert "Remove from Sprint" in resp.text
+        # Reading should still be in global section with Add button
+        assert "Add to Sprint" in resp.text
+
+    def test_sprint_habits_not_found(self, web_client):
+        """Nonexistent sprint returns 404."""
+        resp = web_client.get("/sprints/nonexistent/habits")
+        assert resp.status_code == 404
+
+
+class TestDashboardProgressBars:
+    """Test dashboard progress bars render with correct data (task 7.6)."""
+
+    def test_progress_bar_renders(self, web_client):
+        """Dashboard contains progress bar elements."""
+        resp = web_client.get("/")
+        assert resp.status_code == 200
+        assert "progress-bar" in resp.text
+        assert "progress" in resp.text
+
+    def test_progress_bar_with_entries(self, seeded_db):
+        """Progress bars reflect actual completion percentages."""
+        db_path, app = seeded_db
+        client = TestClient(app)
+
+        # Log some entries for exercise (target 5/week)
+        for day in range(2, 7):  # 5 days
+            execute({"action": "log_date", "payload": {
+                "habit_id": "exercise", "date": f"2026-03-0{day}", "value": 1,
+            }}, db_path)
+
+        resp = client.get("/?week=1")
+        assert resp.status_code == 200
+        # Exercise: 5/5 = 100% → should have success class
+        assert "progress-bar-success" in resp.text
+
+    def test_progress_bar_color_classes(self, seeded_db):
+        """Color coding: success (>=80%), warning (50-79%), danger (<50%)."""
+        db_path, app = seeded_db
+        client = TestClient(app)
+
+        # Log 1 entry for reading (target 3/week) → 33% → danger
+        execute({"action": "log_date", "payload": {
+            "habit_id": "reading", "date": "2026-03-02", "value": 1,
+        }}, db_path)
+
+        resp = client.get("/?week=1")
+        assert resp.status_code == 200
+        assert "progress-bar" in resp.text
+
+    def test_sprint_header_progress_bar(self, web_client):
+        """Sprint header shows overall progress bar."""
+        resp = web_client.get("/")
+        assert resp.status_code == 200
+        assert "sprint-progress" in resp.text
+
+    def test_category_progress_bar(self, web_client):
+        """Category rows show progress bars."""
+        resp = web_client.get("/")
+        assert resp.status_code == 200
+        assert "category-row" in resp.text
+        assert "progress-sm" in resp.text or "progress-inline" in resp.text

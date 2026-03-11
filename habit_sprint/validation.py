@@ -206,6 +206,9 @@ def validate_payload(action, payload):
     # Type-check provided fields
     for field_name, value in payload.items():
         spec = schema[field_name]
+        # Allow None for optional fields (sets DB column to NULL)
+        if value is None and not spec.get("required"):
+            continue
         err = _check_type(field_name, value, spec, action)
         if err is not None:
             return err
