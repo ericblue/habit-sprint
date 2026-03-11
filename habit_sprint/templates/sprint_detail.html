@@ -29,6 +29,7 @@
 
 {% if sprint.status == "active" %}
 <p>
+    <a href="/sprints/{{ sprint.id }}/edit" class="btn btn-primary">Edit Sprint</a>
     <form class="inline" method="post" action="/sprints/{{ sprint.id }}/archive">
         <button type="submit" class="btn btn-danger">Archive Sprint</button>
     </form>

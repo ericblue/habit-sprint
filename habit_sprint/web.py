@@ -358,6 +358,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
     async def sprint_form(request: Request):
         return templates.TemplateResponse("sprint_form.html", {
             "request": request, "error": None, "active_nav": "sprints", "values": {},
+            "editing": False, "form_action": "/sprints",
         })
 
     @app.post("/sprints", response_class=HTMLResponse)
@@ -382,6 +383,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             return templates.TemplateResponse("sprint_form.html", {
                 "request": request, "error": result["error"], "active_nav": "sprints",
                 "values": {"start_date": start_date, "end_date": end_date, "theme": theme, "focus_goals": focus_goals},
+                "editing": False, "form_action": "/sprints",
             })
         return RedirectResponse(url="/sprints", status_code=303)
 
@@ -405,6 +407,50 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         return templates.TemplateResponse("sprint_detail.html", {
             "request": request, "sprint": sprint, "retro": retro, "active_nav": "sprints",
         })
+
+    @app.get("/sprints/{sprint_id}/edit", response_class=HTMLResponse)
+    async def sprint_edit_form(request: Request, sprint_id: str):
+        list_result = execute({"action": "list_sprints", "payload": {}}, request.app.state.db_path)
+        sprint = None
+        if list_result["status"] == "success":
+            for s in list_result["data"]["sprints"]:
+                if s["id"] == sprint_id:
+                    sprint = s
+                    break
+        if sprint is None:
+            return RedirectResponse(url="/sprints?msg=Sprint+not+found", status_code=303)
+        focus_goals_text = "\n".join(sprint.get("focus_goals") or [])
+        return templates.TemplateResponse("sprint_form.html", {
+            "request": request,
+            "editing": True,
+            "form_action": f"/sprints/{sprint_id}/edit",
+            "values": {"theme": sprint.get("theme", ""), "focus_goals": focus_goals_text},
+            "error": None,
+            "active_nav": "sprints",
+        })
+
+    @app.post("/sprints/{sprint_id}/edit", response_class=HTMLResponse)
+    async def sprint_update(
+        request: Request,
+        sprint_id: str,
+        theme: str = Form(""),
+        focus_goals: str = Form(""),
+    ):
+        goals = [g.strip() for g in focus_goals.splitlines() if g.strip()]
+        payload: dict = {"sprint_id": sprint_id}
+        payload["theme"] = theme.strip() if theme.strip() else None
+        payload["focus_goals"] = goals if goals else None
+        result = execute({"action": "update_sprint", "payload": payload}, request.app.state.db_path)
+        if result["status"] == "error":
+            return templates.TemplateResponse("sprint_form.html", {
+                "request": request,
+                "editing": True,
+                "form_action": f"/sprints/{sprint_id}/edit",
+                "values": {"theme": theme, "focus_goals": focus_goals},
+                "error": result["error"],
+                "active_nav": "sprints",
+            })
+        return RedirectResponse(url=f"/sprints/{sprint_id}?msg=Sprint+updated", status_code=303)
 
     @app.post("/sprints/{sprint_id}/archive")
     async def archive_sprint(request: Request, sprint_id: str):
