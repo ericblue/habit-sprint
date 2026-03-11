@@ -46,6 +46,7 @@ Habit Sprint is a deterministic, JSON-native sprint-based habit tracking engine 
 | 5. LLM Skill Layer | Done | 100% |
 | 6. Web UI | Done | 100% |
 | 7. Web UI Polish & Sprint Habit Management | Done | 100% |
+| 8. Habit Consolidation & Per-Sprint Goals | Not Started | 0% |
 
 ---
 
@@ -554,6 +555,100 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 
 ---
 
+## Epic 8: Habit Consolidation & Per-Sprint Goals (NOT STARTED)
+
+Consolidate duplicate historical habit records (159 rows to ~33 unique habits) and add a `sprint_habit_goals` junction table to preserve per-sprint `target_per_week` and `weight` values. This ensures historical reporting remains accurate even when a habit's current defaults change.
+
+**Motivation:** Historical habits were imported as separate records per sprint (e.g., 14 "Cardio" habits with different IDs). This creates clutter and fragile reporting. A junction table decouples habit identity from sprint-specific goals.
+
+**Schema change:**
+
+```sql
+CREATE TABLE sprint_habit_goals (
+    sprint_id TEXT NOT NULL REFERENCES sprints(id),
+    habit_id  TEXT NOT NULL REFERENCES habits(id),
+    target_per_week INTEGER NOT NULL,
+    weight    INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (sprint_id, habit_id)
+);
+```
+
+### Acceptance Criteria
+
+- [ ] `sprint_habit_goals` table exists with correct schema and foreign keys
+- [ ] Engine supports CRUD for per-sprint habit goals (set/get/delete)
+- [ ] All 7 reporting functions use sprint-specific targets when available, falling back to habit defaults
+- [ ] Historical habits are consolidated: ~33 unique habits instead of 159, all entries reassigned
+- [ ] Per-sprint targets preserved in `sprint_habit_goals` for every historical sprint
+- [ ] Web UI allows editing per-sprint targets on the sprint habits management page
+- [ ] All new and existing tests pass
+
+### Tasks
+
+| ID | Title | Description | Priority | Complexity | Depends On | Status |
+|----|-------|-------------|----------|------------|------------|--------|
+| 8.1 | Schema migration: sprint_habit_goals table | Create migration 002 adding sprint_habit_goals junction table with (sprint_id, habit_id, target_per_week, weight) PK | High | S | 1.3 | <!-- vk:ERI-52 --> |
+| 8.2 | Engine: sprint_habit_goals CRUD | Add set_sprint_habit_goal (upsert), get_sprint_habit_goal, delete_sprint_habit_goal to engine + executor + validation | High | M | 8.1 | <!-- vk:ERI-53 --> |
+| 8.3 | Reporting: use sprint_habit_goals for targets | Update all 7 reporting functions to check sprint_habit_goals first, fall back to habit defaults | High | L | 8.1 | <!-- vk:ERI-54 --> |
+| 8.4 | Data migration: consolidate historical habits | Script to deduplicate habits, reassign entries, populate sprint_habit_goals, remove duplicates. Must be idempotent with backup. | High | L | 8.1, 8.2 | <!-- vk:ERI-55 --> |
+| 8.5 | Web UI: per-sprint goal editing | Update sprint habits management page to show/edit per-sprint target_per_week and weight | Medium | M | 8.2, 8.3 | <!-- vk:ERI-56 --> |
+| 8.6 | Epic 8 tests | Tests for sprint_habit_goals CRUD, reporting with overrides vs defaults, data migration correctness, web UI goal editing, backward compatibility | Medium | L | 8.2, 8.3, 8.4, 8.5 | <!-- vk:ERI-57 --> |
+
+### Task Details
+
+**8.1 - Schema migration: sprint_habit_goals table**
+- [ ] Create `migrations/002_sprint_habit_goals.sql` with CREATE TABLE statement
+- [ ] Table has composite PK (sprint_id, habit_id), FKs to sprints and habits
+- [ ] Columns: sprint_id, habit_id, target_per_week (INT NOT NULL), weight (INT NOT NULL DEFAULT 1)
+- [ ] Migration system applies it automatically on next `get_connection()`
+- [ ] Existing data and schema untouched (additive migration only)
+
+**8.2 - Engine: sprint_habit_goals CRUD**
+- [ ] `set_sprint_habit_goal(conn, payload)` — upsert: INSERT OR REPLACE into sprint_habit_goals
+- [ ] `get_sprint_habit_goal(conn, payload)` — returns goal for (sprint_id, habit_id) or null
+- [ ] `delete_sprint_habit_goal(conn, payload)` — removes override, habit reverts to its defaults
+- [ ] Wire all three through executor.py and validation.py
+- [ ] When adding a habit to a sprint (update_habit with sprint_id), auto-create a sprint_habit_goals row
+
+**8.3 - Reporting: use sprint_habit_goals for targets**
+- [ ] Create helper `_get_effective_target(conn, sprint_id, habit)` that checks sprint_habit_goals first
+- [ ] Update `weekly_completion` to use effective target
+- [ ] Update `daily_score` to use effective weight
+- [ ] Update `get_week_view` to use effective target and weight
+- [ ] Update `sprint_report` to use effective target and weight
+- [ ] Update `habit_report` to use effective target
+- [ ] Update `category_report` to use effective weight
+- [ ] Update `sprint_dashboard` to use effective target and weight
+- [ ] Habits without sprint_habit_goals rows fall back to habit.target_per_week and habit.weight
+
+**8.4 - Data migration: consolidate historical habits**
+- [ ] Create backup of database before migration
+- [ ] Group habits by canonical name (strip `-hist-*` suffix patterns)
+- [ ] For each group, choose canonical ID (prefer shortest ID or non-hist ID if exists)
+- [ ] Insert sprint_habit_goals rows for each duplicate's (sprint_id, target_per_week, weight)
+- [ ] UPDATE entries SET habit_id = canonical_id WHERE habit_id = duplicate_id
+- [ ] DELETE duplicate habit records
+- [ ] SET sprint_id = NULL on canonical habits (make them global)
+- [ ] Verify entry counts match before and after migration
+- [ ] Script is idempotent (safe to run multiple times)
+
+**8.5 - Web UI: per-sprint goal editing**
+- [ ] Sprint habits management page shows target_per_week and weight columns with editable inputs
+- [ ] "Save Goals" action calls set_sprint_habit_goal for each modified habit
+- [ ] Dashboard displays sprint-specific targets in the Done column (e.g., "3/5" using sprint goal, not habit default)
+- [ ] Habit cards on sprint habits page show effective vs default values when they differ
+
+**8.6 - Epic 8 tests**
+- [ ] Test set/get/delete sprint_habit_goals round-trip
+- [ ] Test reporting uses sprint-specific targets when available
+- [ ] Test reporting falls back to habit defaults when no override exists
+- [ ] Test data migration: entry counts preserved, duplicates removed, goals preserved
+- [ ] Test data migration idempotency (run twice, same result)
+- [ ] Test web UI goal editing form and POST endpoint
+- [ ] Test backward compatibility: existing habits without overrides unchanged
+
+---
+
 ## Dependencies
 
 - Python 3.12+
@@ -609,3 +704,4 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - **2026-03-11**: Autonomous work loop completed Epic 6 (Web UI) in 5 iterations. All 9/9 tasks done, 4 merge conflicts auto-resolved, 1 test fix. All 6 epics complete. 682 tests passing + 1 skipped (optional web dep).
 - **2026-03-10**: Added Epic 7 (Web UI Polish & Sprint Habit Management) — 7 tasks for UI polish, habit sprint scope, sprint editing, retro editing, sprint habits management, dashboard progress indicators. Created VK epic ERI-42 and tasks ERI-43 through ERI-49.
 - **2026-03-10**: Autonomous work loop completed Epic 7 in 3 iterations. All 7/7 tasks done, 3 merge conflicts auto-resolved, 1 validation bug fix. All 7 epics complete. 757 tests passing.
+- **2026-03-11**: Added Epic 8 (Habit Consolidation & Per-Sprint Goals) — 6 tasks for sprint_habit_goals junction table, reporting updates, historical data migration, and web UI goal editing. Created VK epic ERI-51 and tasks ERI-52 through ERI-57.
