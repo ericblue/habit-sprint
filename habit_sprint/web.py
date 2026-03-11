@@ -301,4 +301,69 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             return RedirectResponse(url=f"/habits?msg={result['error']}", status_code=303)
         return RedirectResponse(url="/habits?msg=Habit+archived", status_code=303)
 
+    # --- Sprint management pages ---
+
+    @app.get("/sprints", response_class=HTMLResponse)
+    async def sprints_list(request: Request):
+        result = execute({"action": "list_sprints", "payload": {}}, request.app.state.db_path)
+        sprints = result["data"]["sprints"] if result["status"] == "success" else []
+        error = result.get("error") if result["status"] == "error" else None
+        return templates.TemplateResponse("sprints_list.html", {
+            "request": request, "sprints": sprints, "error": error, "active_nav": "sprints",
+        })
+
+    @app.get("/sprints/new", response_class=HTMLResponse)
+    async def sprint_form(request: Request):
+        return templates.TemplateResponse("sprint_form.html", {
+            "request": request, "error": None, "active_nav": "sprints",
+        })
+
+    @app.post("/sprints", response_class=HTMLResponse)
+    async def create_sprint(
+        request: Request,
+        start_date: str = Form(...),
+        end_date: str = Form(...),
+        theme: str = Form(""),
+        focus_goals: str = Form(""),
+    ):
+        goals = [g.strip() for g in focus_goals.splitlines() if g.strip()]
+        payload = {
+            "start_date": start_date,
+            "end_date": end_date,
+            "theme": theme or None,
+            "focus_goals": goals,
+        }
+        result = execute({"action": "create_sprint", "payload": payload}, request.app.state.db_path)
+        if result["status"] == "error":
+            return templates.TemplateResponse("sprint_form.html", {
+                "request": request, "error": result["error"], "active_nav": "sprints",
+            })
+        return RedirectResponse(url="/sprints", status_code=303)
+
+    @app.get("/sprints/{sprint_id}", response_class=HTMLResponse)
+    async def sprint_detail(request: Request, sprint_id: str):
+        list_result = execute({"action": "list_sprints", "payload": {}}, request.app.state.db_path)
+        sprint = None
+        if list_result["status"] == "success":
+            for s in list_result["data"]["sprints"]:
+                if s["id"] == sprint_id:
+                    sprint = s
+                    break
+        if sprint is None:
+            return HTMLResponse("Sprint not found", status_code=404)
+
+        retro = None
+        retro_result = execute({"action": "get_retro", "payload": {"sprint_id": sprint_id}}, request.app.state.db_path)
+        if retro_result["status"] == "success":
+            retro = retro_result["data"]
+
+        return templates.TemplateResponse("sprint_detail.html", {
+            "request": request, "sprint": sprint, "retro": retro, "active_nav": "sprints",
+        })
+
+    @app.post("/sprints/{sprint_id}/archive")
+    async def archive_sprint(request: Request, sprint_id: str):
+        execute({"action": "archive_sprint", "payload": {"sprint_id": sprint_id}}, request.app.state.db_path)
+        return RedirectResponse(url="/sprints", status_code=303)
+
     return app

@@ -71,14 +71,14 @@ def _check_type(field_name, value, spec, action):
 ACTION_SCHEMAS = {
     # --- Sprint mutations ---
     "create_sprint": {
-        "id": {"type": "str", "required": True},
+        "id": {"type": "str", "required": False},
         "start_date": {"type": "iso_date", "required": True},
         "end_date": {"type": "iso_date", "required": True},
         "theme": {"type": "str", "required": False},
         "focus_goals": {"type": "list", "required": False},
     },
     "update_sprint": {
-        "id": {"type": "str", "required": True},
+        "sprint_id": {"type": "str", "required": True},
         "theme": {"type": "str", "required": False},
         "focus_goals": {"type": "list", "required": False},
     },
@@ -86,7 +86,7 @@ ACTION_SCHEMAS = {
         "status": {"type": "str", "required": False, "enum": ["active", "archived"]},
     },
     "archive_sprint": {
-        "id": {"type": "str", "required": True},
+        "sprint_id": {"type": "str", "required": True},
     },
     "get_active_sprint": {},
 

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Sprint {{ sprint.id }} - Habit Sprint{% endblock %}
+{% block content %}
+<h1>Sprint {{ sprint.id }}</h1>
+
+<table>
+    <tr><th>Status</th><td>
+        {% if sprint.status == "active" %}
+        <span class="badge badge-active">active</span>
+        {% else %}
+        <span class="badge badge-archived">archived</span>
+        {% endif %}
+    </td></tr>
+    <tr><th>Start Date</th><td>{{ sprint.start_date }}</td></tr>
+    <tr><th>End Date</th><td>{{ sprint.end_date }}</td></tr>
+    <tr><th>Theme</th><td>{{ sprint.theme or "—" }}</td></tr>
+    <tr><th>Focus Goals</th><td>
+        {% if sprint.focus_goals %}
+        <ul>
+            {% for goal in sprint.focus_goals %}
+            <li>{{ goal }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        —
+        {% endif %}
+    </td></tr>
+</table>
+
+{% if sprint.status == "active" %}
+<p>
+    <form class="inline" method="post" action="/sprints/{{ sprint.id }}/archive">
+        <button type="submit" class="btn btn-danger">Archive Sprint</button>
+    </form>
+</p>
+{% endif %}
+
+<h2>Retrospective</h2>
+{% if retro %}
+<table>
+    <tr><th>What Went Well</th><td>{{ retro.what_went_well or "—" }}</td></tr>
+    <tr><th>What to Improve</th><td>{{ retro.what_to_improve or "—" }}</td></tr>
+    <tr><th>Ideas</th><td>{{ retro.ideas or "—" }}</td></tr>
+</table>
+{% else %}
+<p>No retrospective recorded for this sprint.</p>
+{% endif %}
+
+<p><a href="/sprints">&larr; Back to Sprints</a></p>
+{% endblock %}

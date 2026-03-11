@@ -435,11 +435,11 @@ web.py  ─┘
 - [x] Form validation mirrors engine validation rules
 
 **6.6 - Sprint management page**
-- [ ] `GET /sprints` renders list of all sprints with status badges
-- [ ] `GET /sprints/new` renders create form (start_date, end_date, theme, focus_goals)
-- [ ] `POST /sprints` creates a sprint via `create_sprint`
-- [ ] `POST /sprints/{id}/archive` archives via `archive_sprint`
-- [ ] Sprint detail view shows retro if one exists
+- [x] `GET /sprints` renders list of all sprints with status badges
+- [x] `GET /sprints/new` renders create form (start_date, end_date, theme, focus_goals)
+- [x] `POST /sprints` creates a sprint via `create_sprint`
+- [x] `POST /sprints/{id}/archive` archives via `archive_sprint`
+- [x] Sprint detail view shows retro if one exists
 
 **6.7 - Styling and layout**
 - [ ] `habit_sprint/static/style.css` with clean, minimal design

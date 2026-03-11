@@ -90,7 +90,6 @@ def _create_sprint_payload(
 ) -> dict:
     """Build a create_sprint action dict."""
     payload: dict = {
-        "id": "auto",
         "start_date": start_date,
         "end_date": end_date,
     }

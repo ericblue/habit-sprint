@@ -51,10 +51,10 @@ class TestActionRouting:
 
     # Minimal valid payloads for each action (stubs raise NotImplementedError)
     _VALID_PAYLOADS = {
-        "create_sprint": {"id": "s1", "start_date": "2024-01-01", "end_date": "2024-01-07"},
-        "update_sprint": {"id": "s1"},
+        "create_sprint": {"start_date": "2024-01-01", "end_date": "2024-01-07"},
+        "update_sprint": {"sprint_id": "s1"},
         "list_sprints": {},
-        "archive_sprint": {"id": "s1"},
+        "archive_sprint": {"sprint_id": "s1"},
         "get_active_sprint": {},
         "create_habit": {"id": "h1", "name": "Run", "category": "fitness", "target_per_week": 3},
         "update_habit": {"id": "h1"},

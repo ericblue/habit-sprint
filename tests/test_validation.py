@@ -31,7 +31,7 @@ class TestMissingRequiredFields:
 
     def test_missing_required_id_on_archive(self):
         err = validate_payload("archive_sprint", {})
-        assert err == "Missing required field: id"
+        assert err == "Missing required field: sprint_id"
 
     def test_missing_habit_id_on_log_date(self):
         err = validate_payload("log_date", {"date": "2024-01-01", "value": 1})
