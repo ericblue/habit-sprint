@@ -29,7 +29,7 @@
             <td>
                 {% if not habit.archived %}
                 <a href="/habits/{{ habit.id }}/edit">Edit</a>
-                <form method="post" action="/habits/{{ habit.id }}/archive" style="display:inline">
+                <form method="post" action="/habits/{{ habit.id }}/archive" class="inline">
                     <button type="submit" onclick="return confirm('Archive this habit?')">Archive</button>
                 </form>
                 {% else %}
