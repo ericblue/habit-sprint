@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}New Sprint - Habit Sprint{% endblock %}
+{% block content %}
+<h1>Create Sprint</h1>
+
+{% if error %}
+<div class="flash-error">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/sprints">
+    <label for="start_date">Start Date</label>
+    <input type="date" id="start_date" name="start_date" required>
+
+    <label for="end_date">End Date</label>
+    <input type="date" id="end_date" name="end_date" required>
+
+    <label for="theme">Theme</label>
+    <input type="text" id="theme" name="theme" placeholder="e.g. Building consistency">
+
+    <label for="focus_goals">Focus Goals (one per line)</label>
+    <textarea id="focus_goals" name="focus_goals" placeholder="Exercise 4x/week&#10;Read 30 min daily"></textarea>
+
+    <br><br>
+    <button type="submit" class="btn btn-primary">Create Sprint</button>
+    <a href="/sprints" style="margin-left: 1rem;">Cancel</a>
+</form>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Sprints - Habit Sprint{% endblock %}
+{% block content %}
+<h1>Sprints</h1>
+<p><a href="/sprints/new" class="btn btn-primary">New Sprint</a></p>
+
+{% if error %}
+<div class="flash-error">{{ error }}</div>
+{% endif %}
+
+{% if sprints %}
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Theme</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in sprints %}
+        <tr>
+            <td><a href="/sprints/{{ s.id }}">{{ s.id }}</a></td>
+            <td>{{ s.theme or "—" }}</td>
+            <td>{{ s.start_date }}</td>
+            <td>{{ s.end_date }}</td>
+            <td>
+                {% if s.status == "active" %}
+                <span class="badge badge-active">active</span>
+                {% else %}
+                <span class="badge badge-archived">archived</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if s.status == "active" %}
+                <form class="inline" method="post" action="/sprints/{{ s.id }}/archive">
+                    <button type="submit" class="btn btn-danger">Archive</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No sprints yet.</p>
+{% endif %}
+{% endblock %}

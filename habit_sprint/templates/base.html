@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Habit Sprint{% endblock %}</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 0; background: #f5f5f5; color: #333; }
+        nav { background: #2c3e50; padding: 0.75rem 1.5rem; }
+        nav a { color: #ecf0f1; text-decoration: none; margin-right: 1.5rem; font-weight: 500; }
+        nav a:hover { text-decoration: underline; }
+        .container { max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
+        .badge { display: inline-block; padding: 0.2em 0.6em; border-radius: 4px; font-size: 0.85em; font-weight: 600; }
+        .badge-active { background: #27ae60; color: #fff; }
+        .badge-archived { background: #95a5a6; color: #fff; }
+        .btn { display: inline-block; padding: 0.5em 1em; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95em; text-decoration: none; }
+        .btn-primary { background: #2980b9; color: #fff; }
+        .btn-primary:hover { background: #2471a3; }
+        .btn-danger { background: #c0392b; color: #fff; }
+        .btn-danger:hover { background: #a93226; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 4px; overflow: hidden; }
+        th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #ecf0f1; font-weight: 600; }
+        form.inline { display: inline; }
+        label { display: block; margin-top: 0.8rem; font-weight: 500; }
+        input[type="text"], input[type="date"], textarea { width: 100%; max-width: 400px; padding: 0.4em; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; box-sizing: border-box; }
+        textarea { height: 5em; }
+        .flash-error { background: #f8d7da; color: #721c24; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav>
+        <a href="/">Dashboard</a>
+        <a href="/habits">Habits</a>
+        <a href="/sprints">Sprints</a>
+    </nav>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
