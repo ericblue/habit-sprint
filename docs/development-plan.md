@@ -427,12 +427,12 @@ web.py  ─┘
 - [ ] Handles errors gracefully (shows toast or inline message)
 
 **6.5 - Habit management page**
-- [ ] `GET /habits` renders list of all habits with edit/archive actions
-- [ ] `GET /habits/new` renders create form (name, slug, category, target, weight, unit)
-- [ ] `POST /habits` creates a habit via `create_habit`
-- [ ] `POST /habits/{id}/edit` updates a habit via `update_habit`
-- [ ] `POST /habits/{id}/archive` archives via `archive_habit`
-- [ ] Form validation mirrors engine validation rules
+- [x] `GET /habits` renders list of all habits with edit/archive actions
+- [x] `GET /habits/new` renders create form (name, slug, category, target, weight, unit)
+- [x] `POST /habits` creates a habit via `create_habit`
+- [x] `POST /habits/{id}/edit` updates a habit via `update_habit`
+- [x] `POST /habits/{id}/archive` archives via `archive_habit`
+- [x] Form validation mirrors engine validation rules
 
 **6.6 - Sprint management page**
 - [ ] `GET /sprints` renders list of all sprints with status badges

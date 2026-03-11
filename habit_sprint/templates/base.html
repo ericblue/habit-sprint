@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Habit Sprint{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav>
+        <a href="/" {% if active_nav == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
+        <a href="/habits" {% if active_nav == 'habits' %}class="active"{% endif %}>Habits</a>
+        <a href="/sprints" {% if active_nav == 'sprints' %}class="active"{% endif %}>Sprints</a>
+    </nav>
+    <main>
+        {% if success_message %}
+        <div class="alert alert-success">{{ success_message }}</div>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

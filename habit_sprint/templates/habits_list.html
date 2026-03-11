@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Habits - Habit Sprint{% endblock %}
+{% block content %}
+<h1>Habits</h1>
+<p><a href="/habits/new">+ New Habit</a></p>
+
+{% if habits %}
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Slug</th>
+            <th>Category</th>
+            <th>Target/Week</th>
+            <th>Weight</th>
+            <th>Unit</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for habit in habits %}
+        <tr{% if habit.archived %} class="archived"{% endif %}>
+            <td>{{ habit.name }}</td>
+            <td><code>{{ habit.id }}</code></td>
+            <td>{{ habit.category }}</td>
+            <td>{{ habit.target_per_week }}</td>
+            <td>{{ habit.weight }}</td>
+            <td>{{ habit.unit }}</td>
+            <td>
+                {% if not habit.archived %}
+                <a href="/habits/{{ habit.id }}/edit">Edit</a>
+                <form method="post" action="/habits/{{ habit.id }}/archive" style="display:inline">
+                    <button type="submit" onclick="return confirm('Archive this habit?')">Archive</button>
+                </form>
+                {% else %}
+                <em>Archived</em>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No habits yet. <a href="/habits/new">Create one</a>.</p>
+{% endif %}
+{% endblock %}
