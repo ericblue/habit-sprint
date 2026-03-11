@@ -639,13 +639,13 @@ CREATE TABLE sprint_habit_goals (
 - [x] Habit cards on sprint habits page show effective vs default values when they differ
 
 **8.6 - Epic 8 tests**
-- [ ] Test set/get/delete sprint_habit_goals round-trip
-- [ ] Test reporting uses sprint-specific targets when available
-- [ ] Test reporting falls back to habit defaults when no override exists
-- [ ] Test data migration: entry counts preserved, duplicates removed, goals preserved
-- [ ] Test data migration idempotency (run twice, same result)
-- [ ] Test web UI goal editing form and POST endpoint
-- [ ] Test backward compatibility: existing habits without overrides unchanged
+- [x] Test set/get/delete sprint_habit_goals round-trip
+- [x] Test reporting uses sprint-specific targets when available
+- [x] Test reporting falls back to habit defaults when no override exists
+- [x] Test data migration: entry counts preserved, duplicates removed, goals preserved
+- [x] Test data migration idempotency (run twice, same result)
+- [x] Test web UI goal editing form and POST endpoint
+- [x] Test backward compatibility: existing habits without overrides unchanged
 
 ---
 
