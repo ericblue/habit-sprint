@@ -7,8 +7,8 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -165,5 +165,140 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
     @app.get("/api/sprint/active")
     async def api_active_sprint(request: Request):
         return _execute_action(request.app.state.db_path, "get_active_sprint")
+
+    # --- Habit management pages ---
+
+    @app.get("/habits")
+    async def habits_list(request: Request):
+        result = execute(
+            {"action": "list_habits", "payload": {"include_archived": True}},
+            request.app.state.db_path,
+        )
+        habits = result["data"]["habits"] if result["status"] == "success" else []
+        return templates.TemplateResponse(
+            "habits_list.html",
+            {
+                "request": request,
+                "habits": habits,
+                "active_nav": "habits",
+                "success_message": request.query_params.get("msg"),
+            },
+        )
+
+    @app.get("/habits/new")
+    async def habit_new_form(request: Request):
+        return templates.TemplateResponse(
+            "habit_form.html",
+            {
+                "request": request,
+                "editing": False,
+                "form_action": "/habits",
+                "values": {},
+                "error": None,
+                "active_nav": "habits",
+            },
+        )
+
+    @app.post("/habits")
+    async def habit_create(
+        request: Request,
+        name: str = Form(...),
+        id: str = Form(...),
+        category: str = Form(...),
+        target_per_week: int = Form(...),
+        weight: int = Form(...),
+        unit: str = Form(...),
+    ):
+        payload = {
+            "id": id,
+            "name": name,
+            "category": category,
+            "target_per_week": target_per_week,
+            "weight": weight,
+            "unit": unit,
+        }
+        result = execute({"action": "create_habit", "payload": payload}, request.app.state.db_path)
+        if result["status"] == "error":
+            return templates.TemplateResponse(
+                "habit_form.html",
+                {
+                    "request": request,
+                    "editing": False,
+                    "form_action": "/habits",
+                    "values": payload,
+                    "error": result["error"],
+                    "active_nav": "habits",
+                },
+            )
+        return RedirectResponse(url="/habits?msg=Habit+created", status_code=303)
+
+    @app.get("/habits/{habit_id}/edit")
+    async def habit_edit_form(request: Request, habit_id: str):
+        result = execute(
+            {"action": "list_habits", "payload": {"include_archived": True}},
+            request.app.state.db_path,
+        )
+        habit = None
+        if result["status"] == "success":
+            for h in result["data"]["habits"]:
+                if h["id"] == habit_id:
+                    habit = h
+                    break
+        if habit is None:
+            return RedirectResponse(url="/habits?msg=Habit+not+found", status_code=303)
+        return templates.TemplateResponse(
+            "habit_form.html",
+            {
+                "request": request,
+                "editing": True,
+                "form_action": f"/habits/{habit_id}/edit",
+                "values": habit,
+                "error": None,
+                "active_nav": "habits",
+            },
+        )
+
+    @app.post("/habits/{habit_id}/edit")
+    async def habit_update(
+        request: Request,
+        habit_id: str,
+        name: str = Form(...),
+        category: str = Form(...),
+        target_per_week: int = Form(...),
+        weight: int = Form(...),
+        unit: str = Form(...),
+    ):
+        payload = {
+            "id": habit_id,
+            "name": name,
+            "category": category,
+            "target_per_week": target_per_week,
+            "weight": weight,
+            "unit": unit,
+        }
+        result = execute({"action": "update_habit", "payload": payload}, request.app.state.db_path)
+        if result["status"] == "error":
+            return templates.TemplateResponse(
+                "habit_form.html",
+                {
+                    "request": request,
+                    "editing": True,
+                    "form_action": f"/habits/{habit_id}/edit",
+                    "values": payload,
+                    "error": result["error"],
+                    "active_nav": "habits",
+                },
+            )
+        return RedirectResponse(url="/habits?msg=Habit+updated", status_code=303)
+
+    @app.post("/habits/{habit_id}/archive")
+    async def habit_archive(request: Request, habit_id: str):
+        result = execute(
+            {"action": "archive_habit", "payload": {"id": habit_id}},
+            request.app.state.db_path,
+        )
+        if result["status"] == "error":
+            return RedirectResponse(url=f"/habits?msg={result['error']}", status_code=303)
+        return RedirectResponse(url="/habits?msg=Habit+archived", status_code=303)
 
     return app
