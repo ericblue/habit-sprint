@@ -434,6 +434,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
 
         return templates.TemplateResponse("sprint_detail.html", {
             "request": request, "sprint": sprint, "retro": retro, "active_nav": "sprints",
+            "success_message": request.query_params.get("msg"),
         })
 
     @app.get("/sprints/{sprint_id}/edit", response_class=HTMLResponse)
@@ -479,6 +480,24 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
                 "active_nav": "sprints",
             })
         return RedirectResponse(url=f"/sprints/{sprint_id}?msg=Sprint+updated", status_code=303)
+
+    @app.post("/sprints/{sprint_id}/retro", response_class=HTMLResponse)
+    async def sprint_retro_save(
+        request: Request,
+        sprint_id: str,
+        what_went_well: str = Form(""),
+        what_to_improve: str = Form(""),
+        ideas: str = Form(""),
+    ):
+        result = execute({"action": "add_retro", "payload": {
+            "sprint_id": sprint_id,
+            "what_went_well": what_went_well.strip(),
+            "what_to_improve": what_to_improve.strip(),
+            "ideas": ideas.strip(),
+        }}, request.app.state.db_path)
+        if result["status"] == "error":
+            return RedirectResponse(url=f"/sprints/{sprint_id}?msg=Error:+{result['error']}", status_code=303)
+        return RedirectResponse(url=f"/sprints/{sprint_id}?msg=Retrospective+saved", status_code=303)
 
     @app.post("/sprints/{sprint_id}/archive")
     async def archive_sprint(request: Request, sprint_id: str):

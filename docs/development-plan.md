@@ -520,11 +520,11 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - [x] Handles validation errors (preserves form values on error)
 
 **7.4 - Sprint retro editing**
-- [ ] Sprint detail page shows retro form (inline or separate page) with what_went_well, what_to_improve, ideas textareas
-- [ ] `POST /sprints/{id}/retro` calls `add_retro` executor action (upsert behavior)
-- [ ] Pre-fills form with existing retro data when editing
-- [ ] Success message shown after saving retro
-- [ ] Only allows retro editing for active sprints (or make configurable)
+- [x] Sprint detail page shows retro form (inline or separate page) with what_went_well, what_to_improve, ideas textareas
+- [x] `POST /sprints/{id}/retro` calls `add_retro` executor action (upsert behavior)
+- [x] Pre-fills form with existing retro data when editing
+- [x] Success message shown after saving retro
+- [x] Only allows retro editing for active sprints (or make configurable)
 
 **7.5 - Sprint habits management page**
 - [ ] `GET /sprints/{id}/habits` shows two sections: "Sprint Habits" and "Available Global Habits"
