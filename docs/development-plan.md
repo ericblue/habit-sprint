@@ -622,15 +622,15 @@ CREATE TABLE sprint_habit_goals (
 - [x] Habits without sprint_habit_goals rows fall back to habit.target_per_week and habit.weight
 
 **8.4 - Data migration: consolidate historical habits**
-- [ ] Create backup of database before migration
-- [ ] Group habits by canonical name (strip `-hist-*` suffix patterns)
-- [ ] For each group, choose canonical ID (prefer shortest ID or non-hist ID if exists)
-- [ ] Insert sprint_habit_goals rows for each duplicate's (sprint_id, target_per_week, weight)
-- [ ] UPDATE entries SET habit_id = canonical_id WHERE habit_id = duplicate_id
-- [ ] DELETE duplicate habit records
-- [ ] SET sprint_id = NULL on canonical habits (make them global)
-- [ ] Verify entry counts match before and after migration
-- [ ] Script is idempotent (safe to run multiple times)
+- [x] Create backup of database before migration
+- [x] Group habits by canonical name (strip `-hist-*` suffix patterns)
+- [x] For each group, choose canonical ID (prefer shortest ID or non-hist ID if exists)
+- [x] Insert sprint_habit_goals rows for each duplicate's (sprint_id, target_per_week, weight)
+- [x] UPDATE entries SET habit_id = canonical_id WHERE habit_id = duplicate_id
+- [x] DELETE duplicate habit records
+- [x] SET sprint_id = NULL on canonical habits (make them global)
+- [x] Verify entry counts match before and after migration
+- [x] Script is idempotent (safe to run multiple times)
 
 **8.5 - Web UI: per-sprint goal editing**
 - [ ] Sprint habits management page shows target_per_week and weight columns with editable inputs
