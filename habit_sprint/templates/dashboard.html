@@ -1,28 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - Habit Sprint{% endblock %}
 
-{% block head %}
-<style>
-  .sprint-header { background: #fff; padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-  .sprint-header h1 { font-size: 1.25rem; }
-  .sprint-meta { display: flex; gap: 1.5rem; font-size: 0.875rem; color: #666; }
-  .sprint-meta strong { color: #333; }
-  .week-toggle { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-  .week-toggle a { padding: 0.4rem 1rem; border-radius: 6px; text-decoration: none; font-size: 0.875rem; background: #fff; color: #555; border: 1px solid #ddd; }
-  .week-toggle a.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-  .grid-container { overflow-x: auto; }
-  table.sprint-grid { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 0.875rem; }
-  table.sprint-grid th, table.sprint-grid td { padding: 0.5rem 0.6rem; text-align: center; border-bottom: 1px solid #eee; }
-  table.sprint-grid th { background: #f9fafb; color: #666; font-weight: 600; white-space: nowrap; }
-  table.sprint-grid th.habit-name, table.sprint-grid td.habit-name { text-align: left; min-width: 140px; }
-  table.sprint-grid tr.category-row td { background: #f0f4ff; font-weight: 600; color: #2563eb; text-align: left; padding: 0.4rem 0.6rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-  table.sprint-grid tr.totals-row td { background: #f9fafb; font-weight: 600; border-top: 2px solid #ddd; }
-  table.sprint-grid input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #2563eb; }
-  .pct-cell { font-size: 0.75rem; color: #888; }
-  .no-sprint { text-align: center; padding: 3rem; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-  .no-sprint p { margin-bottom: 1rem; color: #666; }
-</style>
-{% endblock %}
 
 {% block content %}
 {% if not data %}
@@ -36,7 +14,7 @@
 <div class="sprint-header">
   <div>
     <h1>{{ data.sprint.theme or "Sprint Dashboard" }}</h1>
-    <span style="font-size: 0.85rem; color: #888;">{{ data.sprint.start_date }} &mdash; {{ data.sprint.end_date }}</span>
+    <span class="sprint-dates">{{ data.sprint.start_date }} &mdash; {{ data.sprint.end_date }}</span>
   </div>
   <div class="sprint-meta">
     <div>Weighted Score <br><strong>{{ data.sprint_summary.weighted_score }}%</strong></div>
@@ -59,7 +37,7 @@
     <tr>
       <th class="habit-name">Habit</th>
       {% for d in dates %}
-      <th>{{ d.strftime("%b&nbsp;%d").replace(" 0", " ")|safe }}<br><span style="font-size:0.7rem;color:#aaa">{{ d.strftime("%a") }}</span></th>
+      <th>{{ d.strftime("%b&nbsp;%d").replace(" 0", " ")|safe }}<br><span class="date-day">{{ d.strftime("%a") }}</span></th>
       {% endfor %}
       <th>Done</th>
     </tr>

@@ -442,12 +442,12 @@ web.py  ─┘
 - [x] Sprint detail view shows retro if one exists
 
 **6.7 - Styling and layout**
-- [ ] `habit_sprint/static/style.css` with clean, minimal design
-- [ ] Responsive grid that works on desktop and tablet
-- [ ] Navigation: Dashboard | Habits | Sprints
-- [ ] Grid cells sized for easy click/tap targets
-- [ ] Color-coded categories (subtle background tints)
-- [ ] Dark/light mode support via `prefers-color-scheme`
+- [x] `habit_sprint/static/style.css` with clean, minimal design
+- [x] Responsive grid that works on desktop and tablet
+- [x] Navigation: Dashboard | Habits | Sprints
+- [x] Grid cells sized for easy click/tap targets
+- [x] Color-coded categories (subtle background tints)
+- [x] Dark/light mode support via `prefers-color-scheme`
 
 **6.8 - CLI integration**
 - [x] `habit-sprint --web` starts uvicorn on `127.0.0.1:8000` (configurable via `--host` and `--port`)
