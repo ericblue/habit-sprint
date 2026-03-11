@@ -248,6 +248,23 @@ def archive_habit(conn: sqlite3.Connection, payload: dict) -> dict:
     return dict(row)
 
 
+def unarchive_habit(conn: sqlite3.Connection, payload: dict) -> dict:
+    habit_id = payload["id"]
+    row = conn.execute("SELECT * FROM habits WHERE id = ?", (habit_id,)).fetchone()
+    if row is None:
+        raise ValueError(f"Habit not found: {habit_id}")
+
+    now = datetime.now().isoformat()
+    conn.execute(
+        "UPDATE habits SET archived = 0, updated_at = ? WHERE id = ?",
+        (now, habit_id),
+    )
+    conn.commit()
+
+    row = conn.execute("SELECT * FROM habits WHERE id = ?", (habit_id,)).fetchone()
+    return dict(row)
+
+
 def list_habits(conn: sqlite3.Connection, payload: dict) -> dict:
     sprint_id = payload.get("sprint_id")
     category = payload.get("category")

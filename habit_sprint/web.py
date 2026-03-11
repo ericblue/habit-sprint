@@ -371,6 +371,16 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             return RedirectResponse(url=f"/habits?msg={result['error']}", status_code=303)
         return RedirectResponse(url="/habits?msg=Habit+archived", status_code=303)
 
+    @app.post("/habits/{habit_id}/unarchive")
+    async def habit_unarchive(request: Request, habit_id: str):
+        result = execute(
+            {"action": "unarchive_habit", "payload": {"id": habit_id}},
+            request.app.state.db_path,
+        )
+        if result["status"] == "error":
+            return RedirectResponse(url=f"/habits?msg={result['error']}", status_code=303)
+        return RedirectResponse(url="/habits?msg=Habit+restored", status_code=303)
+
     # --- Sprint management pages ---
 
     @app.get("/sprints", response_class=HTMLResponse)

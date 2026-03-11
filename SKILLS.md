@@ -491,6 +491,30 @@ Soft-deletes a habit by setting `archived=1`. Archived habits cannot receive new
 
 ---
 
+### unarchive_habit
+
+Restores an archived habit by setting `archived=0`. The habit can then receive new entries again.
+
+**Payload:**
+
+| Field | Type | Required | Description | Constraints |
+|---|---|---|---|---|
+| `id` | str | yes | Habit ID to restore | Must exist |
+
+**Response data:** Returns the full habit object with `"archived": 0`.
+
+**Example:**
+
+```json
+// Request
+{"action": "unarchive_habit", "payload": {"id": "no-alcohol"}}
+
+// Response
+{"status": "success", "data": {"id": "no-alcohol", "name": "No Alcohol", "category": "health", "target_per_week": 7, "weight": 2, "unit": "count", "sprint_id": null, "archived": 0, "created_at": "2026-02-15T09:00:00", "updated_at": "2026-03-05T11:30:00"}, "error": null}
+```
+
+---
+
 ### list_habits
 
 Lists habits with optional filters. When `sprint_id` is provided, returns both sprint-scoped habits and global habits (sprint_id IS NULL).

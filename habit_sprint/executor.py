@@ -13,6 +13,7 @@ _MUTATION_ACTIONS = {
     "create_habit": engine.create_habit,
     "update_habit": engine.update_habit,
     "archive_habit": engine.archive_habit,
+    "unarchive_habit": engine.unarchive_habit,
     "list_habits": engine.list_habits,
     "log_date": engine.log_date,
     "log_range": engine.log_range,

@@ -23,6 +23,9 @@
           </form>
           {% else %}
           <span class="badge badge-archived">Archived</span>
+          <form method="post" action="/habits/{{ habit.id }}/unarchive" class="inline">
+              <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('Restore this habit?')">Restore</button>
+          </form>
           {% endif %}
         </div>
       </div>
