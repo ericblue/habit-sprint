@@ -2,7 +2,7 @@
 
 > **Generated from:** docs/prd.md
 > **Created:** 2026-03-01
-> **Last synced:** 2026-03-01
+> **Last synced:** 2026-03-10
 > **Status:** Active Planning Document
 > **VibeKanban Project ID:** 9c59dcf5-0dc3-4305-855b-9b9432dd88c2
 
@@ -13,7 +13,7 @@ Habit Sprint is a deterministic, JSON-native sprint-based habit tracking engine 
 ## Tech Stack
 
 - **Backend:** Python 3.12+
-- **Frontend:** None (CmdShell widgets are Phase 3)
+- **Frontend:** Lightweight web UI (htmx + Jinja2 templates)
 - **Database:** SQLite (stdlib sqlite3 module)
 - **Testing:** pytest
 - **Packaging:** pyproject.toml with venv
@@ -44,6 +44,7 @@ Habit Sprint is a deterministic, JSON-native sprint-based habit tracking engine 
 | 3. Reporting Engine | Done | 100% |
 | 4. CLI Adapter | Done | 100% |
 | 5. LLM Skill Layer | Done | 100% |
+| 6. Web UI | Planning | 0% |
 
 ---
 
@@ -353,21 +354,131 @@ Create the SKILLS.md file that constrains LLM behavior when interacting with the
 
 ---
 
+## Epic 6: Web UI
+
+Add a lightweight web interface for quick visual check-ins and dashboard viewing. The web UI is a thin adapter (peer to cli.py) that calls the same executor — no business logic in the web layer.
+
+**Motivation:** The LLM interface works well for complex queries and natural language, but a visual grid with checkboxes is faster for daily habit logging and at-a-glance sprint progress.
+
+**Architecture:**
+
+```
+cli.py  ─┐
+          ├──► executor.py ──► engine.py / reporting.py ──► SQLite
+web.py  ─┘
+```
+
+### Acceptance Criteria
+
+- [ ] `habit-sprint --web` or `habit-sprint-web` starts a local server on a configurable port
+- [ ] Dashboard page renders the current sprint grid with clickable checkboxes
+- [ ] Clicking a checkbox toggles a habit entry for that date via `log_date` / `delete_entry`
+- [ ] All data flows through `executor.execute()` — no direct SQL or bypassing the engine
+- [ ] Works alongside CLI and LLM usage on the same database (SQLite WAL)
+- [ ] No JavaScript build toolchain required (htmx + vanilla CSS)
+
+### Tasks
+
+| ID | Title | Description | Priority | Complexity | Depends On | Status |
+|----|-------|-------------|----------|------------|------------|--------|
+| 6.1 | FastAPI app scaffold | Create `habit_sprint/web.py` with FastAPI app, database lifecycle, and static file / template setup | High | M | 4.1 | <!-- vk:ERI-33 --> |
+| 6.2 | API endpoints | Expose core actions as REST endpoints: GET /api/dashboard, POST /api/log, DELETE /api/log, GET /api/habits, GET /api/sprints | High | M | 6.1 | <!-- vk:ERI-34 --> |
+| 6.3 | Dashboard page | Jinja2 template rendering the sprint grid (habits × dates) with checkboxes, category grouping, and daily totals | High | L | 6.2 | <!-- vk:ERI-35 --> |
+| 6.4 | Checkbox toggle interaction | htmx-powered checkbox click that POSTs/DELETEs entries and updates the grid without full page reload | High | M | 6.3 | <!-- vk:ERI-36 --> |
+| 6.5 | Habit management page | Simple CRUD page for creating, editing, and archiving habits | Medium | M | 6.2 | <!-- vk:ERI-37 --> |
+| 6.6 | Sprint management page | View/create/archive sprints, view retros | Medium | M | 6.2 | <!-- vk:ERI-38 --> |
+| 6.7 | Styling and layout | Responsive CSS for the dashboard grid, navigation, and forms — clean and minimal, no framework required | Medium | M | 6.3 | <!-- vk:ERI-39 --> |
+| 6.8 | CLI integration | Add `--web` flag to CLI or separate `habit-sprint-web` entry point to start the server with configurable host/port | Medium | S | 6.1 | <!-- vk:ERI-40 --> |
+| 6.9 | Web UI tests | pytest suite for API endpoints and template rendering, using TestClient | Medium | M | 6.2, 6.3, 6.4 | <!-- vk:ERI-41 --> |
+
+### Task Details
+
+**6.1 - FastAPI app scaffold**
+- [ ] `habit_sprint/web.py` creates a FastAPI application
+- [ ] Database connection managed via app lifespan (same `db.get_connection()`)
+- [ ] Jinja2 template directory at `habit_sprint/templates/`
+- [ ] Static files served from `habit_sprint/static/`
+- [ ] Add `fastapi` and `uvicorn` as optional dependencies in pyproject.toml (`[project.optional-dependencies] web = [...]`)
+
+**6.2 - API endpoints**
+- [ ] `GET /api/dashboard?sprint_id=` → calls `sprint_dashboard`, returns JSON
+- [ ] `POST /api/log` (body: `{habit_id, date, value}`) → calls `log_date`
+- [ ] `DELETE /api/log` (body: `{habit_id, date}`) → calls `delete_entry`
+- [ ] `GET /api/habits?include_archived=false` → calls `list_habits`
+- [ ] `GET /api/sprints?status=active` → calls `list_sprints`
+- [ ] `GET /api/sprint/active` → calls `get_active_sprint`
+- [ ] All endpoints call `executor.execute()` and return the standard envelope
+- [ ] Error responses use appropriate HTTP status codes
+
+**6.3 - Dashboard page**
+- [ ] `GET /` renders the dashboard for the active sprint
+- [ ] Grid layout: rows = habits (grouped by category), columns = dates in sprint
+- [ ] Each cell shows a checkbox (checked if entry exists with value > 0)
+- [ ] Category headers separate habit groups
+- [ ] Daily totals row at the bottom (points / max)
+- [ ] Sprint summary sidebar or header (weighted score, days elapsed/remaining)
+- [ ] Week 1 / Week 2 tab or toggle
+
+**6.4 - Checkbox toggle interaction**
+- [ ] Checkbox uses `hx-post="/api/log"` or `hx-delete="/api/log"` based on current state
+- [ ] Server returns updated cell HTML fragment (htmx swap)
+- [ ] Daily totals row updates after toggle
+- [ ] Visual feedback on toggle (brief highlight or transition)
+- [ ] Handles errors gracefully (shows toast or inline message)
+
+**6.5 - Habit management page**
+- [ ] `GET /habits` renders list of all habits with edit/archive actions
+- [ ] `GET /habits/new` renders create form (name, slug, category, target, weight, unit)
+- [ ] `POST /habits` creates a habit via `create_habit`
+- [ ] `POST /habits/{id}/edit` updates a habit via `update_habit`
+- [ ] `POST /habits/{id}/archive` archives via `archive_habit`
+- [ ] Form validation mirrors engine validation rules
+
+**6.6 - Sprint management page**
+- [ ] `GET /sprints` renders list of all sprints with status badges
+- [ ] `GET /sprints/new` renders create form (start_date, end_date, theme, focus_goals)
+- [ ] `POST /sprints` creates a sprint via `create_sprint`
+- [ ] `POST /sprints/{id}/archive` archives via `archive_sprint`
+- [ ] Sprint detail view shows retro if one exists
+
+**6.7 - Styling and layout**
+- [ ] `habit_sprint/static/style.css` with clean, minimal design
+- [ ] Responsive grid that works on desktop and tablet
+- [ ] Navigation: Dashboard | Habits | Sprints
+- [ ] Grid cells sized for easy click/tap targets
+- [ ] Color-coded categories (subtle background tints)
+- [ ] Dark/light mode support via `prefers-color-scheme`
+
+**6.8 - CLI integration**
+- [ ] `habit-sprint --web` starts uvicorn on `127.0.0.1:8000` (configurable via `--host` and `--port`)
+- [ ] Or: separate entry point `habit-sprint-web` registered in pyproject.toml
+- [ ] Uses the same `--db` flag for database path
+- [ ] Prints startup message with URL to open
+
+**6.9 - Web UI tests**
+- [ ] Use FastAPI `TestClient` for endpoint testing
+- [ ] Test dashboard renders with known sprint/habit data
+- [ ] Test log/delete toggle cycle returns correct state
+- [ ] Test habit CRUD through web endpoints
+- [ ] Test error cases (invalid habit, no active sprint)
+- [ ] Test concurrent access (CLI + web on same DB)
+
+---
+
 ## Dependencies
 
 - Python 3.12+
 - sqlite3 (stdlib)
 - pytest (dev dependency)
+- fastapi, uvicorn, jinja2 (optional web dependencies)
 
 ## Out of Scope (v1)
 
-- Web UI / TUI
 - CmdShell widget implementation (Phase 3 per PRD)
 - Mobile app
 - Notifications / push reminders
 - Multi-user / authentication
 - Real-time sync
-- HTTP API wrapper
 - Negative habit type field
 - Cross-sprint longitudinal analytics
 - Heatmap data endpoint
@@ -404,3 +515,5 @@ Create the SKILLS.md file that constrains LLM behavior when interacting with the
 - **2026-03-01**: Work loop iteration 10 — completed tasks 3.8, 4.2, 4.3 (3 parallel, 1 merge conflict auto-resolved in formatters.py/cli.py/test_formatters.py, Epics 3 done)
 - **2026-03-01**: Autonomous work loop reached iteration cap (10). 23/26 tasks done. Remaining: 4.4 (CLI tests), 5.1, 5.2. All 663 tests passing.
 - **2026-03-01**: Completed remaining tasks 4.4, 5.1, 5.2 (4.4 + 5.1 parallel, then 5.2). All 26/26 tasks done. All 5 epics complete. 682 tests passing.
+- **2026-03-10**: Added Epic 6 (Web UI) — 9 tasks for lightweight web interface with FastAPI + htmx. Moved Web UI and HTTP API out of "Out of Scope".
+- **2026-03-10**: Synced with VibeKanban — created Epic 6 (ERI-32) and 9 tasks (ERI-33 through ERI-41). All Epics 1-5 confirmed Done. 26/35 tasks complete, 9 new tasks in To do.
