@@ -394,11 +394,11 @@ web.py  ─┘
 ### Task Details
 
 **6.1 - FastAPI app scaffold**
-- [ ] `habit_sprint/web.py` creates a FastAPI application
-- [ ] Database connection managed via app lifespan (same `db.get_connection()`)
-- [ ] Jinja2 template directory at `habit_sprint/templates/`
-- [ ] Static files served from `habit_sprint/static/`
-- [ ] Add `fastapi` and `uvicorn` as optional dependencies in pyproject.toml (`[project.optional-dependencies] web = [...]`)
+- [x] `habit_sprint/web.py` creates a FastAPI application
+- [x] Database connection managed via app lifespan (same `db.get_connection()`)
+- [x] Jinja2 template directory at `habit_sprint/templates/`
+- [x] Static files served from `habit_sprint/static/`
+- [x] Add `fastapi` and `uvicorn` as optional dependencies in pyproject.toml (`[project.optional-dependencies] web = [...]`)
 
 **6.2 - API endpoints**
 - [ ] `GET /api/dashboard?sprint_id=` → calls `sprint_dashboard`, returns JSON
