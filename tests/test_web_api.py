@@ -790,6 +790,57 @@ class TestSprintHabitsManagement:
         resp = web_client.get("/sprints/nonexistent/habits")
         assert resp.status_code == 404
 
+    def test_sprint_habits_shows_goal_inputs(self, web_client):
+        """Sprint habits page shows editable target and weight inputs."""
+        sid = self._sprint_id(web_client)
+        # Add exercise to sprint so it appears in the sprint section
+        web_client.post(f"/sprints/{sid}/habits/add", data={"habit_id": "exercise"}, follow_redirects=False)
+        resp = web_client.get(f"/sprints/{sid}/habits")
+        assert resp.status_code == 200
+        assert "goal_target_exercise" in resp.text
+        assert "goal_weight_exercise" in resp.text
+        assert "Save Goals" in resp.text
+
+    def test_save_sprint_goals(self, web_client):
+        """POST to save goals creates sprint_habit_goals overrides."""
+        sid = self._sprint_id(web_client)
+        web_client.post(f"/sprints/{sid}/habits/add", data={"habit_id": "exercise"}, follow_redirects=False)
+        resp = web_client.post(f"/sprints/{sid}/habits/goals", data={
+            "goal_target_exercise": "5",
+            "goal_weight_exercise": "3",
+            "default_target_exercise": "3",
+            "default_weight_exercise": "1",
+        }, follow_redirects=False)
+        assert resp.status_code == 303
+
+        # Verify override is shown on the page
+        page = web_client.get(f"/sprints/{sid}/habits")
+        assert "goal-override" in page.text
+        assert "(default:" in page.text
+
+    def test_save_goals_removes_override_when_matching_default(self, web_client):
+        """Saving goals matching defaults removes the override."""
+        sid = self._sprint_id(web_client)
+        web_client.post(f"/sprints/{sid}/habits/add", data={"habit_id": "exercise"}, follow_redirects=False)
+        # First set an override
+        web_client.post(f"/sprints/{sid}/habits/goals", data={
+            "goal_target_exercise": "5",
+            "goal_weight_exercise": "3",
+            "default_target_exercise": "3",
+            "default_weight_exercise": "1",
+        }, follow_redirects=False)
+        # Now save with default values
+        web_client.post(f"/sprints/{sid}/habits/goals", data={
+            "goal_target_exercise": "3",
+            "goal_weight_exercise": "1",
+            "default_target_exercise": "3",
+            "default_weight_exercise": "1",
+        }, follow_redirects=False)
+
+        page = web_client.get(f"/sprints/{sid}/habits")
+        # CSS class definition always present; check no input has it applied
+        assert 'class="goal-override"' not in page.text
+
 
 class TestDashboardProgressBars:
     """Test dashboard progress bars render with correct data (task 7.6)."""
