@@ -604,11 +604,11 @@ CREATE TABLE sprint_habit_goals (
 - [x] Existing data and schema untouched (additive migration only)
 
 **8.2 - Engine: sprint_habit_goals CRUD**
-- [ ] `set_sprint_habit_goal(conn, payload)` — upsert: INSERT OR REPLACE into sprint_habit_goals
-- [ ] `get_sprint_habit_goal(conn, payload)` — returns goal for (sprint_id, habit_id) or null
-- [ ] `delete_sprint_habit_goal(conn, payload)` — removes override, habit reverts to its defaults
-- [ ] Wire all three through executor.py and validation.py
-- [ ] When adding a habit to a sprint (update_habit with sprint_id), auto-create a sprint_habit_goals row
+- [x] `set_sprint_habit_goal(conn, payload)` — upsert: INSERT OR REPLACE into sprint_habit_goals
+- [x] `get_sprint_habit_goal(conn, payload)` — returns goal for (sprint_id, habit_id) or null
+- [x] `delete_sprint_habit_goal(conn, payload)` — removes override, habit reverts to its defaults
+- [x] Wire all three through executor.py and validation.py
+- [x] When adding a habit to a sprint (update_habit with sprint_id), auto-create a sprint_habit_goals row
 
 **8.3 - Reporting: use sprint_habit_goals for targets**
 - [ ] Create helper `_get_effective_target(conn, sprint_id, habit)` that checks sprint_habit_goals first

@@ -155,6 +155,22 @@ ACTION_SCHEMAS = {
         "sprint_id": {"type": "str", "required": True},
     },
 
+    # --- Sprint habit goals ---
+    "set_sprint_habit_goal": {
+        "sprint_id": {"type": "str", "required": True},
+        "habit_id": {"type": "str", "required": True},
+        "target_per_week": {"type": "int", "required": True, "min": 1, "max": 7},
+        "weight": {"type": "int", "required": False, "min": 1, "max": 3},
+    },
+    "get_sprint_habit_goal": {
+        "sprint_id": {"type": "str", "required": True},
+        "habit_id": {"type": "str", "required": True},
+    },
+    "delete_sprint_habit_goal": {
+        "sprint_id": {"type": "str", "required": True},
+        "habit_id": {"type": "str", "required": True},
+    },
+
     # --- Query actions ---
     "weekly_completion": {
         "habit_id": {"type": "str", "required": True},

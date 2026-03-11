@@ -21,6 +21,9 @@ _MUTATION_ACTIONS = {
     "delete_entry": engine.delete_entry,
     "add_retro": engine.add_retro,
     "get_retro": engine.get_retro,
+    "set_sprint_habit_goal": engine.set_sprint_habit_goal,
+    "get_sprint_habit_goal": engine.get_sprint_habit_goal,
+    "delete_sprint_habit_goal": engine.delete_sprint_habit_goal,
 }
 
 _QUERY_ACTIONS = {

@@ -225,6 +225,20 @@ def update_habit(conn: sqlite3.Connection, payload: dict) -> dict:
         f"UPDATE habits SET {', '.join(updates)} WHERE id = ?",
         params,
     )
+
+    # Auto-create sprint_habit_goals row when assigning habit to a sprint
+    sprint_id = payload.get("sprint_id")
+    if sprint_id is not None:
+        # Re-read habit to get current/updated values for defaults
+        updated = conn.execute(
+            "SELECT target_per_week, weight FROM habits WHERE id = ?", (habit_id,)
+        ).fetchone()
+        conn.execute(
+            """INSERT OR IGNORE INTO sprint_habit_goals (sprint_id, habit_id, target_per_week, weight)
+               VALUES (?, ?, ?, ?)""",
+            (sprint_id, habit_id, updated["target_per_week"], updated["weight"]),
+        )
+
     conn.commit()
 
     row = conn.execute("SELECT * FROM habits WHERE id = ?", (habit_id,)).fetchone()
@@ -457,3 +471,58 @@ def get_retro(conn: sqlite3.Connection, payload: dict) -> dict:
     if retro is None:
         raise ValueError(f"No retrospective found for sprint {sprint_id}")
     return dict(retro)
+
+
+def set_sprint_habit_goal(conn: sqlite3.Connection, payload: dict) -> dict:
+    sprint_id = payload["sprint_id"]
+    habit_id = payload["habit_id"]
+    target_per_week = payload["target_per_week"]
+    weight = payload.get("weight", 1)
+
+    # Validate sprint exists
+    if conn.execute("SELECT 1 FROM sprints WHERE id = ?", (sprint_id,)).fetchone() is None:
+        raise ValueError(f"Sprint not found: {sprint_id}")
+
+    # Validate habit exists
+    if conn.execute("SELECT 1 FROM habits WHERE id = ?", (habit_id,)).fetchone() is None:
+        raise ValueError(f"Habit not found: {habit_id}")
+
+    conn.execute(
+        """INSERT OR REPLACE INTO sprint_habit_goals (sprint_id, habit_id, target_per_week, weight)
+           VALUES (?, ?, ?, ?)""",
+        (sprint_id, habit_id, target_per_week, weight),
+    )
+    conn.commit()
+
+    row = conn.execute(
+        "SELECT * FROM sprint_habit_goals WHERE sprint_id = ? AND habit_id = ?",
+        (sprint_id, habit_id),
+    ).fetchone()
+    return dict(row)
+
+
+def get_sprint_habit_goal(conn: sqlite3.Connection, payload: dict) -> dict:
+    sprint_id = payload["sprint_id"]
+    habit_id = payload["habit_id"]
+
+    row = conn.execute(
+        "SELECT * FROM sprint_habit_goals WHERE sprint_id = ? AND habit_id = ?",
+        (sprint_id, habit_id),
+    ).fetchone()
+
+    if row is None:
+        return {"sprint_id": sprint_id, "habit_id": habit_id, "goal": None}
+    return dict(row)
+
+
+def delete_sprint_habit_goal(conn: sqlite3.Connection, payload: dict) -> dict:
+    sprint_id = payload["sprint_id"]
+    habit_id = payload["habit_id"]
+
+    cursor = conn.execute(
+        "DELETE FROM sprint_habit_goals WHERE sprint_id = ? AND habit_id = ?",
+        (sprint_id, habit_id),
+    )
+    conn.commit()
+
+    return {"sprint_id": sprint_id, "habit_id": habit_id, "deleted": cursor.rowcount > 0}
