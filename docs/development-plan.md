@@ -456,12 +456,12 @@ web.py  ─┘
 - [x] Prints startup message with URL to open
 
 **6.9 - Web UI tests**
-- [ ] Use FastAPI `TestClient` for endpoint testing
-- [ ] Test dashboard renders with known sprint/habit data
-- [ ] Test log/delete toggle cycle returns correct state
-- [ ] Test habit CRUD through web endpoints
-- [ ] Test error cases (invalid habit, no active sprint)
-- [ ] Test concurrent access (CLI + web on same DB)
+- [x] Use FastAPI `TestClient` for endpoint testing
+- [x] Test dashboard renders with known sprint/habit data
+- [x] Test log/delete toggle cycle returns correct state
+- [x] Test habit CRUD through web endpoints
+- [x] Test error cases (invalid habit, no active sprint)
+- [x] Test concurrent access (CLI + web on same DB)
 
 ---
 
