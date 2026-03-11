@@ -401,14 +401,14 @@ web.py  ─┘
 - [x] Add `fastapi` and `uvicorn` as optional dependencies in pyproject.toml (`[project.optional-dependencies] web = [...]`)
 
 **6.2 - API endpoints**
-- [ ] `GET /api/dashboard?sprint_id=` → calls `sprint_dashboard`, returns JSON
-- [ ] `POST /api/log` (body: `{habit_id, date, value}`) → calls `log_date`
-- [ ] `DELETE /api/log` (body: `{habit_id, date}`) → calls `delete_entry`
-- [ ] `GET /api/habits?include_archived=false` → calls `list_habits`
-- [ ] `GET /api/sprints?status=active` → calls `list_sprints`
-- [ ] `GET /api/sprint/active` → calls `get_active_sprint`
-- [ ] All endpoints call `executor.execute()` and return the standard envelope
-- [ ] Error responses use appropriate HTTP status codes
+- [x] `GET /api/dashboard?sprint_id=` → calls `sprint_dashboard`, returns JSON
+- [x] `POST /api/log` (body: `{habit_id, date, value}`) → calls `log_date`
+- [x] `DELETE /api/log` (body: `{habit_id, date}`) → calls `delete_entry`
+- [x] `GET /api/habits?include_archived=false` → calls `list_habits`
+- [x] `GET /api/sprints?status=active` → calls `list_sprints`
+- [x] `GET /api/sprint/active` → calls `get_active_sprint`
+- [x] All endpoints call `executor.execute()` and return the standard envelope
+- [x] Error responses use appropriate HTTP status codes
 
 **6.3 - Dashboard page**
 - [ ] `GET /` renders the dashboard for the active sprint
