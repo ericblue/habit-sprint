@@ -2,7 +2,7 @@
 
 > **Generated from:** docs/prd.md
 > **Created:** 2026-03-01
-> **Last synced:** 2026-03-10
+> **Last synced:** 2026-03-11
 > **Status:** Active Planning Document
 > **VibeKanban Project ID:** 9c59dcf5-0dc3-4305-855b-9b9432dd88c2
 
@@ -46,7 +46,7 @@ Habit Sprint is a deterministic, JSON-native sprint-based habit tracking engine 
 | 5. LLM Skill Layer | Done | 100% |
 | 6. Web UI | Done | 100% |
 | 7. Web UI Polish & Sprint Habit Management | Done | 100% |
-| 8. Habit Consolidation & Per-Sprint Goals | Not Started | 0% |
+| 8. Habit Consolidation & Per-Sprint Goals | Done | 100% |
 
 ---
 
@@ -555,7 +555,7 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 
 ---
 
-## Epic 8: Habit Consolidation & Per-Sprint Goals (NOT STARTED)
+## Epic 8: Habit Consolidation & Per-Sprint Goals (DONE)
 
 Consolidate duplicate historical habit records (159 rows to ~33 unique habits) and add a `sprint_habit_goals` junction table to preserve per-sprint `target_per_week` and `weight` values. This ensures historical reporting remains accurate even when a habit's current defaults change.
 
@@ -705,3 +705,4 @@ CREATE TABLE sprint_habit_goals (
 - **2026-03-10**: Added Epic 7 (Web UI Polish & Sprint Habit Management) — 7 tasks for UI polish, habit sprint scope, sprint editing, retro editing, sprint habits management, dashboard progress indicators. Created VK epic ERI-42 and tasks ERI-43 through ERI-49.
 - **2026-03-10**: Autonomous work loop completed Epic 7 in 3 iterations. All 7/7 tasks done, 3 merge conflicts auto-resolved, 1 validation bug fix. All 7 epics complete. 757 tests passing.
 - **2026-03-11**: Added Epic 8 (Habit Consolidation & Per-Sprint Goals) — 6 tasks for sprint_habit_goals junction table, reporting updates, historical data migration, and web UI goal editing. Created VK epic ERI-51 and tasks ERI-52 through ERI-57.
+- **2026-03-11**: Autonomous work loop completed Epic 8 in 4 iterations. All 6/6 tasks done, 0 merge conflicts, 0 test fixes. All 8 epics complete. 798 tests passing.
