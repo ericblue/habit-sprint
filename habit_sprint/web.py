@@ -229,6 +229,10 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
 
     @app.get("/habits/new")
     async def habit_new_form(request: Request):
+        active_sprint = None
+        sprint_result = execute({"action": "get_active_sprint", "payload": {}}, request.app.state.db_path)
+        if sprint_result["status"] == "success":
+            active_sprint = sprint_result["data"]
         return templates.TemplateResponse(
             "habit_form.html",
             {
@@ -238,6 +242,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
                 "values": {},
                 "error": None,
                 "active_nav": "habits",
+                "active_sprint": active_sprint,
             },
         )
 
@@ -250,6 +255,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         target_per_week: int = Form(...),
         weight: int = Form(...),
         unit: str = Form(...),
+        sprint_id: str = Form(""),
     ):
         payload = {
             "id": id,
@@ -259,8 +265,14 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             "weight": weight,
             "unit": unit,
         }
+        if sprint_id:
+            payload["sprint_id"] = sprint_id
         result = execute({"action": "create_habit", "payload": payload}, request.app.state.db_path)
         if result["status"] == "error":
+            active_sprint = None
+            sprint_result = execute({"action": "get_active_sprint", "payload": {}}, request.app.state.db_path)
+            if sprint_result["status"] == "success":
+                active_sprint = sprint_result["data"]
             return templates.TemplateResponse(
                 "habit_form.html",
                 {
@@ -270,6 +282,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
                     "values": payload,
                     "error": result["error"],
                     "active_nav": "habits",
+                    "active_sprint": active_sprint,
                 },
             )
         return RedirectResponse(url="/habits?msg=Habit+created", status_code=303)
@@ -288,6 +301,10 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
                     break
         if habit is None:
             return RedirectResponse(url="/habits?msg=Habit+not+found", status_code=303)
+        active_sprint = None
+        sprint_result = execute({"action": "get_active_sprint", "payload": {}}, request.app.state.db_path)
+        if sprint_result["status"] == "success":
+            active_sprint = sprint_result["data"]
         return templates.TemplateResponse(
             "habit_form.html",
             {
@@ -297,6 +314,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
                 "values": habit,
                 "error": None,
                 "active_nav": "habits",
+                "active_sprint": active_sprint,
             },
         )
 
@@ -309,6 +327,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         target_per_week: int = Form(...),
         weight: int = Form(...),
         unit: str = Form(...),
+        sprint_id: str = Form(""),
     ):
         payload = {
             "id": habit_id,
@@ -318,8 +337,16 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             "weight": weight,
             "unit": unit,
         }
+        # Include sprint_id in payload to update scope (empty string = global/NULL)
+        form_data = await request.form()
+        if "sprint_id" in form_data:
+            payload["sprint_id"] = sprint_id if sprint_id else None
         result = execute({"action": "update_habit", "payload": payload}, request.app.state.db_path)
         if result["status"] == "error":
+            active_sprint = None
+            sprint_result = execute({"action": "get_active_sprint", "payload": {}}, request.app.state.db_path)
+            if sprint_result["status"] == "success":
+                active_sprint = sprint_result["data"]
             return templates.TemplateResponse(
                 "habit_form.html",
                 {
@@ -329,6 +356,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
                     "values": payload,
                     "error": result["error"],
                     "active_nav": "habits",
+                    "active_sprint": active_sprint,
                 },
             )
         return RedirectResponse(url="/habits?msg=Habit+updated", status_code=303)

@@ -31,6 +31,7 @@
         <span>Target: <strong>{{ habit.target_per_week }}/week</strong></span>
         <span>Weight: <strong>{{ habit.weight }}</strong></span>
         <span>Unit: <strong>{{ habit.unit }}</strong></span>
+        <span>Scope: <strong>{{ habit.sprint_id if habit.sprint_id else "Global" }}</strong></span>
       </div>
     </div>
     {% endfor %}

@@ -52,6 +52,16 @@
         </select>
     </div>
 
+    <div class="form-group">
+        <label for="sprint_id">Sprint Scope</label>
+        <select id="sprint_id" name="sprint_id">
+            <option value="" {% if not values.get('sprint_id') %}selected{% endif %}>Global (all sprints)</option>
+            {% if active_sprint %}
+            <option value="{{ active_sprint.id }}" {% if values.get('sprint_id') == active_sprint.id %}selected{% endif %}>{{ active_sprint.theme or active_sprint.id }} ({{ active_sprint.start_date }} to {{ active_sprint.end_date }})</option>
+            {% endif %}
+        </select>
+    </div>
+
     <div class="form-actions">
         <button type="submit">{{ "Update Habit" if editing else "Create Habit" }}</button>
         <a href="/habits">Cancel</a>
