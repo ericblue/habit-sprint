@@ -31,7 +31,47 @@ def main() -> int:
         default="json",
         help="Output format (default: json)",
     )
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        help="Start the web UI server instead of processing JSON actions",
+    )
+    parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Web server host (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Web server port (default: 8000)",
+    )
     args = parser.parse_args()
+
+    # Web server mode
+    if args.web:
+        try:
+            import uvicorn
+
+            from habit_sprint.web import create_app
+        except ImportError:
+            print(
+                "Error: web dependencies not installed. "
+                "Install with: pip install habit-sprint[web]",
+                file=sys.stderr,
+            )
+            return 1
+
+        # Ensure database directory exists
+        db_dir = os.path.dirname(args.db)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+
+        app = create_app(db_path=args.db)
+        print(f"Starting Habit Sprint web UI at http://{args.host}:{args.port}")
+        uvicorn.run(app, host=args.host, port=args.port)
+        return 0
 
     # Determine JSON input source (--json flag takes priority over stdin)
     raw_json: str | None = None
