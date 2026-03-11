@@ -23,6 +23,7 @@
         <div class="card-actions">
           {% if s.status == "active" %}
           <span class="badge badge-active">active</span>
+          <a href="/sprints/{{ s.id }}/edit" class="btn btn-sm btn-outline">Edit</a>
           <form class="inline" method="post" action="/sprints/{{ s.id }}/archive">
               <button type="submit" class="btn btn-sm btn-danger">Archive</button>
           </form>

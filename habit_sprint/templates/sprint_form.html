@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% block title %}New Sprint - Habit Sprint{% endblock %}
+{% block title %}{{ "Edit Sprint" if editing else "New Sprint" }} - Habit Sprint{% endblock %}
 {% block content %}
-<h1>Create Sprint</h1>
+<h1>{{ "Edit Sprint" if editing else "Create Sprint" }}</h1>
 
 {% if error %}
 <div class="flash-error">{{ error }}</div>
 {% endif %}
 
-<form method="post" action="/sprints">
+<form method="post" action="{{ form_action }}">
+    {% if not editing %}
     <div class="form-group">
         <label for="start_date">Start Date</label>
         <input type="date" id="start_date" name="start_date" value="{{ values.start_date if values else '' }}" required>
@@ -18,6 +19,7 @@
         <input type="date" id="end_date" name="end_date" value="{{ values.end_date if values else '' }}" required>
         <span class="form-hint">Typically 14 days from start</span>
     </div>
+    {% endif %}
 
     <div class="form-group">
         <label for="theme">Theme</label>
@@ -31,7 +33,7 @@
     </div>
 
     <div class="form-actions">
-        <button type="submit">Create Sprint</button>
+        <button type="submit">{{ "Update Sprint" if editing else "Create Sprint" }}</button>
         <a href="/sprints">Cancel</a>
     </div>
 </form>

@@ -476,7 +476,7 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 
 - [ ] UI has polished visual design with better typography, card layouts, progress indicators, and smooth transitions
 - [ ] Habit form includes weight (1-3) selector and sprint scope (global vs current sprint) field
-- [ ] Sprint detail page allows editing theme and focus goals
+- [x] Sprint detail page allows editing theme and focus goals
 - [ ] Sprint detail page allows creating/editing retrospectives
 - [ ] Dedicated sprint habits page shows which habits are in a sprint and allows adding/removing them
 - [ ] Dashboard shows visual progress indicators (completion bars)
@@ -513,11 +513,11 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - [x] Form pre-fills sprint scope correctly when editing
 
 **7.3 - Sprint edit page**
-- [ ] `GET /sprints/{id}/edit` renders edit form pre-filled with current theme and focus_goals
-- [ ] `POST /sprints/{id}/edit` calls `update_sprint` executor action
-- [ ] Sprint detail page has "Edit" button linking to edit form
-- [ ] Sprints list page has "Edit" action for active sprints
-- [ ] Handles validation errors (preserves form values on error)
+- [x] `GET /sprints/{id}/edit` renders edit form pre-filled with current theme and focus_goals
+- [x] `POST /sprints/{id}/edit` calls `update_sprint` executor action
+- [x] Sprint detail page has "Edit" button linking to edit form
+- [x] Sprints list page has "Edit" action for active sprints
+- [x] Handles validation errors (preserves form values on error)
 
 **7.4 - Sprint retro editing**
 - [ ] Sprint detail page shows retro form (inline or separate page) with what_went_well, what_to_improve, ideas textareas
