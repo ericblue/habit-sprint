@@ -535,11 +535,11 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - [x] Sprint detail page links to this management page
 
 **7.6 - Dashboard progress indicators**
-- [ ] Per-habit row shows a thin completion bar (actual/target) in the "Done" column
-- [ ] Category row shows category weighted score as a progress bar
-- [ ] Sprint header shows overall weighted score as a prominent progress bar
-- [ ] Color coding: green for on-track (>=80%), yellow for warning (50-79%), red for behind (<50%)
-- [ ] Progress bars are CSS-only (no JS), using inline width styles
+- [x] Per-habit row shows a thin completion bar (actual/target) in the "Done" column
+- [x] Category row shows category weighted score as a progress bar
+- [x] Sprint header shows overall weighted score as a prominent progress bar
+- [x] Color coding: green for on-track (>=80%), yellow for warning (50-79%), red for behind (<50%)
+- [x] Progress bars are CSS-only (no JS), using inline width styles
 
 **7.7 - Epic 7 tests**
 - [ ] Test sprint edit form renders with pre-filled values

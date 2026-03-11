@@ -27,7 +27,7 @@
       <strong>{{ data.sprint_summary.weighted_score }}%</strong>
     </div>
     <div class="progress progress-lg">
-      <div class="progress-bar{% if data.sprint_summary.weighted_score >= 80 %} progress-bar-success{% endif %}" style="width: {{ data.sprint_summary.weighted_score }}%"></div>
+      <div class="progress-bar{% if data.sprint_summary.weighted_score >= 80 %} progress-bar-success{% elif data.sprint_summary.weighted_score >= 50 %} progress-bar-warning{% else %} progress-bar-danger{% endif %}" style="width: {{ data.sprint_summary.weighted_score }}%"></div>
     </div>
   </div>
 </div>
@@ -54,7 +54,12 @@
   <tbody>
     {% for cat in data.categories %}
     <tr class="category-row">
-      <td colspan="{{ dates|length + 2 }}">{{ cat.category }} ({{ cat.category_weighted_score }}%)</td>
+      <td colspan="{{ dates|length + 1 }}">{{ cat.category }} ({{ cat.category_weighted_score }}%)</td>
+      <td>
+        <div class="progress progress-sm progress-inline">
+          <div class="progress-bar{% if cat.category_weighted_score >= 80 %} progress-bar-success{% elif cat.category_weighted_score >= 50 %} progress-bar-warning{% else %} progress-bar-danger{% endif %}" style="width: {{ cat.category_weighted_score }}%"></div>
+        </div>
+      </td>
     </tr>
     {% for habit in cat.habits %}
     <tr>
@@ -74,7 +79,14 @@
         <span class="note-icon" onclick="openNote('{{ habit.habit_id }}', '{{ ds }}', this.parentElement)" title="Add/view note">&#9998;</span>
       </td>
       {% endfor %}
-      <td class="pct-cell">{{ habit.week_actual }}/{{ habit.target_per_week }}{% if week is none %}x{{ (dates|length / 7)|round(0, 'ceil')|int }}{% endif %}</td>
+      {% set pct = ((habit.week_actual / habit.target_per_week * 100) if habit.target_per_week > 0 else 0)|int %}
+      {% set pct = [pct, 100]|min %}
+      <td class="pct-cell">
+        {{ habit.week_actual }}/{{ habit.target_per_week }}{% if week is none %}x{{ (dates|length / 7)|round(0, 'ceil')|int }}{% endif %}
+        <div class="progress progress-sm progress-inline">
+          <div class="progress-bar{% if pct >= 80 %} progress-bar-success{% elif pct >= 50 %} progress-bar-warning{% else %} progress-bar-danger{% endif %}" style="width: {{ pct }}%"></div>
+        </div>
+      </td>
     </tr>
     {% endfor %}
     {% endfor %}
