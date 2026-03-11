@@ -49,14 +49,50 @@ def _compute_streaks(entry_rows: list) -> tuple[int, int]:
     return current_streak, longest_streak
 
 
+def _get_effective_goals(
+    conn: sqlite3.Connection, sprint_id: str | None, habits: list
+) -> list[dict]:
+    """Enrich habits with effective target_per_week and weight from sprint_habit_goals.
+
+    For each habit, if a ``sprint_habit_goals`` row exists for the given sprint,
+    its ``target_per_week`` and ``weight`` override the habit defaults.  Otherwise
+    the habit's own values are kept.  Returns a list of plain dicts.
+    """
+    # Convert rows to dicts
+    result = [dict(h) for h in habits]
+
+    if not sprint_id or not result:
+        return result
+
+    habit_ids = [h["id"] for h in result]
+    placeholders = ",".join("?" * len(habit_ids))
+    rows = conn.execute(
+        f"SELECT habit_id, target_per_week, weight FROM sprint_habit_goals "
+        f"WHERE sprint_id = ? AND habit_id IN ({placeholders})",
+        (sprint_id, *habit_ids),
+    ).fetchall()
+
+    overrides = {r["habit_id"]: r for r in rows}
+
+    for h in result:
+        if h["id"] in overrides:
+            goal = overrides[h["id"]]
+            h["target_per_week"] = goal["target_per_week"]
+            h["weight"] = goal["weight"]
+
+    return result
+
+
 def weekly_completion(conn: sqlite3.Connection, payload: dict) -> dict:
     habit_id = payload["habit_id"]
+    sprint_id = payload.get("sprint_id")
 
     # Look up habit
     row = conn.execute("SELECT * FROM habits WHERE id = ?", (habit_id,)).fetchone()
     if row is None:
         raise ValueError(f"Habit not found: {habit_id}")
-    target_per_week = row["target_per_week"]
+    enriched = _get_effective_goals(conn, sprint_id, [row])
+    target_per_week = enriched[0]["target_per_week"]
 
     # Determine week boundaries (Mon–Sun)
     if "week_start" in payload and payload["week_start"] is not None:
@@ -128,14 +164,14 @@ def daily_score(conn: sqlite3.Connection, payload: dict) -> dict:
            ORDER BY created_at""",
         (sprint_id,),
     ).fetchall()
+    habits = _get_effective_goals(conn, sprint_id, habits)
 
     habits_completed = []
     habits_missed = []
     total_points = 0
     max_possible = 0
 
-    for habit in habits:
-        h = dict(habit)
+    for h in habits:
         weight = h["weight"]
         max_possible += weight
 
@@ -222,6 +258,7 @@ def get_week_view(conn: sqlite3.Connection, payload: dict) -> dict:
            ORDER BY category, created_at""",
         (sprint_id,),
     ).fetchall()
+    habits = _get_effective_goals(conn, sprint_id, habits)
 
     # Fetch all entries for these habits in the week range
     habit_ids = [h["id"] for h in habits]
@@ -239,8 +276,7 @@ def get_week_view(conn: sqlite3.Connection, payload: dict) -> dict:
 
     # Group habits by category
     categories = {}
-    for habit in habits:
-        h = dict(habit)
+    for h in habits:
         cat = h["category"]
         habit_entries = entries_by_habit.get(h["id"], {})
 
@@ -330,6 +366,7 @@ def sprint_report(conn: sqlite3.Connection, payload: dict) -> dict:
            ORDER BY created_at""",
         (sprint_id,),
     ).fetchall()
+    habits = _get_effective_goals(conn, sprint_id, habits)
 
     # Compute week boundaries within the sprint
     week_ranges = []
@@ -346,8 +383,7 @@ def sprint_report(conn: sqlite3.Connection, payload: dict) -> dict:
     categories: dict[str, dict] = {}
     habit_stats = []
 
-    for habit in habits:
-        h = dict(habit)
+    for h in habits:
         target_entries = h["target_per_week"] * num_weeks
 
         actual_entries = conn.execute(
@@ -438,11 +474,11 @@ def sprint_report(conn: sqlite3.Connection, payload: dict) -> dict:
                ORDER BY created_at""",
             (prev["id"],),
         ).fetchall()
+        prev_habits = _get_effective_goals(conn, prev["id"], prev_habits)
 
         prev_wa = 0
         prev_wt = 0
-        for ph in prev_habits:
-            ph_d = dict(ph)
+        for ph_d in prev_habits:
             prev_target = ph_d["target_per_week"] * prev_num_weeks
             prev_actual = conn.execute(
                 "SELECT COUNT(*) FROM entries WHERE habit_id = ? AND date >= ? AND date <= ? AND value > 0",
@@ -489,11 +525,11 @@ def habit_report(conn: sqlite3.Connection, payload: dict) -> dict:
     if row is None:
         raise ValueError(f"Habit not found: {habit_id}")
     habit = dict(row)
-    target_per_week = habit["target_per_week"]
 
     today = date.today()
 
-    # Determine period dates
+    # Determine period dates and resolve sprint for effective goals
+    resolved_sprint_id = None
     if sprint_id:
         sprint_row = conn.execute(
             "SELECT * FROM sprints WHERE id = ?", (sprint_id,)
@@ -502,6 +538,7 @@ def habit_report(conn: sqlite3.Connection, payload: dict) -> dict:
             raise ValueError(f"Sprint not found: {sprint_id}")
         start_date = date.fromisoformat(sprint_row["start_date"])
         end_date = date.fromisoformat(sprint_row["end_date"])
+        resolved_sprint_id = sprint_id
         period = sprint_id
     elif period == "current_sprint":
         sprint_row = conn.execute(
@@ -511,6 +548,7 @@ def habit_report(conn: sqlite3.Connection, payload: dict) -> dict:
             raise ValueError("No active sprint found")
         start_date = date.fromisoformat(sprint_row["start_date"])
         end_date = date.fromisoformat(sprint_row["end_date"])
+        resolved_sprint_id = sprint_row["id"]
     elif period == "last_4_weeks":
         current_monday = today - timedelta(days=today.weekday())
         start_date = current_monday - timedelta(weeks=3)
@@ -521,6 +559,11 @@ def habit_report(conn: sqlite3.Connection, payload: dict) -> dict:
         end_date = current_monday + timedelta(days=6)
     else:
         raise ValueError(f"Invalid period: {period}")
+
+    # Apply effective goals from sprint_habit_goals if sprint context available
+    enriched = _get_effective_goals(conn, resolved_sprint_id, [habit])
+    habit = enriched[0]
+    target_per_week = habit["target_per_week"]
 
     # Count total entries in period
     total_entries = conn.execute(
@@ -679,11 +722,11 @@ def category_report(conn: sqlite3.Connection, payload: dict) -> dict:
            ORDER BY created_at""",
         (sprint_id,),
     ).fetchall()
+    habits = _get_effective_goals(conn, sprint_id, habits)
 
     # Group habits by category
     cat_data: dict[str, list[dict]] = {}
-    for habit in habits:
-        h = dict(habit)
+    for h in habits:
         cat = h["category"]
         if category_filter and cat != category_filter:
             continue
@@ -823,6 +866,7 @@ def sprint_dashboard(conn: sqlite3.Connection, payload: dict) -> dict:
            ORDER BY category, created_at""",
         (sprint_id,),
     ).fetchall()
+    habits = _get_effective_goals(conn, sprint_id, habits)
 
     # Fetch all entries for these habits in the view date range
     habit_ids = [h["id"] for h in habits]
@@ -842,8 +886,7 @@ def sprint_dashboard(conn: sqlite3.Connection, payload: dict) -> dict:
     num_weeks_in_view = math.ceil(len(view_dates) / 7) if view_dates else 0
     categories: dict[str, dict] = {}
 
-    for habit in habits:
-        h = dict(habit)
+    for h in habits:
         cat = h["category"]
         habit_entries = entries_by_habit.get(h["id"], {})
 
@@ -901,8 +944,7 @@ def sprint_dashboard(conn: sqlite3.Connection, payload: dict) -> dict:
         ds = vd.isoformat()
         points = 0
         max_points = 0
-        for habit in habits:
-            h = dict(habit)
+        for h in habits:
             weight = h["weight"]
             max_points += weight
             habit_entries = entries_by_habit.get(h["id"], {})
@@ -922,8 +964,7 @@ def sprint_dashboard(conn: sqlite3.Connection, payload: dict) -> dict:
     total_target = 0
     per_habit = []
 
-    for habit in habits:
-        h = dict(habit)
+    for h in habits:
         target_entries = h["target_per_week"] * num_weeks_in_view
         habit_entries = entries_by_habit.get(h["id"], {})
         actual_entries = sum(

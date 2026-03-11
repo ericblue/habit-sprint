@@ -611,15 +611,15 @@ CREATE TABLE sprint_habit_goals (
 - [ ] When adding a habit to a sprint (update_habit with sprint_id), auto-create a sprint_habit_goals row
 
 **8.3 - Reporting: use sprint_habit_goals for targets**
-- [ ] Create helper `_get_effective_target(conn, sprint_id, habit)` that checks sprint_habit_goals first
-- [ ] Update `weekly_completion` to use effective target
-- [ ] Update `daily_score` to use effective weight
-- [ ] Update `get_week_view` to use effective target and weight
-- [ ] Update `sprint_report` to use effective target and weight
-- [ ] Update `habit_report` to use effective target
-- [ ] Update `category_report` to use effective weight
-- [ ] Update `sprint_dashboard` to use effective target and weight
-- [ ] Habits without sprint_habit_goals rows fall back to habit.target_per_week and habit.weight
+- [x] Create helper `_get_effective_target(conn, sprint_id, habit)` that checks sprint_habit_goals first
+- [x] Update `weekly_completion` to use effective target
+- [x] Update `daily_score` to use effective weight
+- [x] Update `get_week_view` to use effective target and weight
+- [x] Update `sprint_report` to use effective target and weight
+- [x] Update `habit_report` to use effective target
+- [x] Update `category_report` to use effective weight
+- [x] Update `sprint_dashboard` to use effective target and weight
+- [x] Habits without sprint_habit_goals rows fall back to habit.target_per_week and habit.weight
 
 **8.4 - Data migration: consolidate historical habits**
 - [ ] Create backup of database before migration
