@@ -105,11 +105,13 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
     @app.get("/", response_class=HTMLResponse)
-    async def dashboard(request: Request, week: Optional[int] = None):
-        """Render the dashboard for the active sprint."""
+    async def dashboard(request: Request, week: Optional[int] = None, sprint_id: Optional[str] = None):
+        """Render the dashboard for a sprint (defaults to active sprint)."""
         payload: dict = {}
         if week is not None:
             payload["week"] = week
+        if sprint_id is not None:
+            payload["sprint_id"] = sprint_id
         result = execute({"action": "sprint_dashboard", "payload": payload}, db_path)
 
         if result["status"] == "error":
