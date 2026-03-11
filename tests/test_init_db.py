@@ -13,7 +13,7 @@ import pytest
 from habit_sprint.db import get_connection
 
 
-EXPECTED_TABLES = {"sprints", "habits", "entries", "retros"}
+EXPECTED_TABLES = {"sprints", "habits", "entries", "retros", "sprint_habit_goals"}
 EXPECTED_INDEXES = {
     "idx_entries_date",
     "idx_entries_habit_date",
@@ -60,10 +60,9 @@ class TestDatabaseCreation:
         }
         assert EXPECTED_INDEXES.issubset(indexes)
 
-    def test_schema_version_records_v1(self, fresh_db: sqlite3.Connection) -> None:
-        rows = fresh_db.execute("SELECT version FROM schema_version").fetchall()
-        assert len(rows) == 1
-        assert rows[0][0] == 1
+    def test_schema_version_records_migrations(self, fresh_db: sqlite3.Connection) -> None:
+        rows = fresh_db.execute("SELECT version FROM schema_version ORDER BY version").fetchall()
+        assert [row[0] for row in rows] == [1, 2]
 
     def test_schema_version_has_applied_at(self, fresh_db: sqlite3.Connection) -> None:
         row = fresh_db.execute(
@@ -92,14 +91,13 @@ class TestIdempotency:
         conn2 = get_connection(db_file)
         conn2.close()
 
-    def test_second_call_still_version_1(self, tmp_path: Path) -> None:
+    def test_second_call_still_same_versions(self, tmp_path: Path) -> None:
         db_file = str(tmp_path / "idempotent.db")
         conn1 = get_connection(db_file)
         conn1.close()
         conn2 = get_connection(db_file)
-        rows = conn2.execute("SELECT version FROM schema_version").fetchall()
-        assert len(rows) == 1
-        assert rows[0][0] == 1
+        rows = conn2.execute("SELECT version FROM schema_version ORDER BY version").fetchall()
+        assert [row[0] for row in rows] == [1, 2]
         conn2.close()
 
     def test_tables_unchanged_after_second_call(self, tmp_path: Path) -> None:

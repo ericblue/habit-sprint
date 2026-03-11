@@ -575,7 +575,7 @@ CREATE TABLE sprint_habit_goals (
 
 ### Acceptance Criteria
 
-- [ ] `sprint_habit_goals` table exists with correct schema and foreign keys
+- [x] `sprint_habit_goals` table exists with correct schema and foreign keys
 - [ ] Engine supports CRUD for per-sprint habit goals (set/get/delete)
 - [ ] All 7 reporting functions use sprint-specific targets when available, falling back to habit defaults
 - [ ] Historical habits are consolidated: ~33 unique habits instead of 159, all entries reassigned
@@ -597,11 +597,11 @@ CREATE TABLE sprint_habit_goals (
 ### Task Details
 
 **8.1 - Schema migration: sprint_habit_goals table**
-- [ ] Create `migrations/002_sprint_habit_goals.sql` with CREATE TABLE statement
-- [ ] Table has composite PK (sprint_id, habit_id), FKs to sprints and habits
-- [ ] Columns: sprint_id, habit_id, target_per_week (INT NOT NULL), weight (INT NOT NULL DEFAULT 1)
-- [ ] Migration system applies it automatically on next `get_connection()`
-- [ ] Existing data and schema untouched (additive migration only)
+- [x] Create `migrations/002_sprint_habit_goals.sql` with CREATE TABLE statement
+- [x] Table has composite PK (sprint_id, habit_id), FKs to sprints and habits
+- [x] Columns: sprint_id, habit_id, target_per_week (INT NOT NULL), weight (INT NOT NULL DEFAULT 1)
+- [x] Migration system applies it automatically on next `get_connection()`
+- [x] Existing data and schema untouched (additive migration only)
 
 **8.2 - Engine: sprint_habit_goals CRUD**
 - [ ] `set_sprint_habit_goal(conn, payload)` — upsert: INSERT OR REPLACE into sprint_habit_goals
