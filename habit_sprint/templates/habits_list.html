@@ -14,6 +14,7 @@
             <th>Target/Week</th>
             <th>Weight</th>
             <th>Unit</th>
+            <th>Sprint Scope</th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -26,6 +27,7 @@
             <td>{{ habit.target_per_week }}</td>
             <td>{{ habit.weight }}</td>
             <td>{{ habit.unit }}</td>
+            <td>{{ habit.sprint_id if habit.sprint_id else "Global" }}</td>
             <td>
                 {% if not habit.archived %}
                 <a href="/habits/{{ habit.id }}/edit">Edit</a>

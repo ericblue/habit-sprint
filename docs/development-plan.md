@@ -506,11 +506,11 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 - [ ] Progress bar CSS component (reusable for dashboard and sprint detail)
 
 **7.2 - Habit sprint scope field**
-- [ ] Add "Sprint Scope" dropdown to habit form: "Global (all sprints)" or current active sprint name
-- [ ] When creating habit, pass `sprint_id` to executor if sprint-scoped is selected
-- [ ] When editing habit, show current sprint scope and allow changing it
-- [ ] Habits list page shows sprint scope column (Global or sprint ID)
-- [ ] Form pre-fills sprint scope correctly when editing
+- [x] Add "Sprint Scope" dropdown to habit form: "Global (all sprints)" or current active sprint name
+- [x] When creating habit, pass `sprint_id` to executor if sprint-scoped is selected
+- [x] When editing habit, show current sprint scope and allow changing it
+- [x] Habits list page shows sprint scope column (Global or sprint ID)
+- [x] Form pre-fills sprint scope correctly when editing
 
 **7.3 - Sprint edit page**
 - [ ] `GET /sprints/{id}/edit` renders edit form pre-filled with current theme and focus_goals
