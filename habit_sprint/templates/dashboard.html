@@ -21,6 +21,15 @@
     <div>Days Elapsed <br><strong>{{ data.sprint.days_elapsed }} / {{ data.sprint.days_elapsed + data.sprint.days_remaining }}</strong></div>
     <div>Days Remaining <br><strong>{{ data.sprint.days_remaining }}</strong></div>
   </div>
+  <div class="sprint-progress">
+    <div class="progress-label">
+      <span>Sprint Progress</span>
+      <strong>{{ data.sprint_summary.weighted_score }}%</strong>
+    </div>
+    <div class="progress progress-lg">
+      <div class="progress-bar{% if data.sprint_summary.weighted_score >= 80 %} progress-bar-success{% endif %}" style="width: {{ data.sprint_summary.weighted_score }}%"></div>
+    </div>
+  </div>
 </div>
 
 {# Week toggle #}

@@ -497,13 +497,13 @@ Polish the web UI with improved visual design and add missing sprint-habit manag
 ### Task Details
 
 **7.1 - UI visual polish**
-- [ ] Improve base typography: better font sizing hierarchy, line heights, letter spacing
-- [ ] Card-based layouts for habits list and sprints list (replace plain tables with styled cards or enhanced table rows)
-- [ ] Improved form styling: better input focus states, field grouping, helper text
-- [ ] Add subtle hover effects on table rows and cards
-- [ ] Smooth transitions on checkbox toggle, note popover open/close
-- [ ] Better mobile responsive layout with collapsible navigation
-- [ ] Progress bar CSS component (reusable for dashboard and sprint detail)
+- [x] Improve base typography: better font sizing hierarchy, line heights, letter spacing
+- [x] Card-based layouts for habits list and sprints list (replace plain tables with styled cards or enhanced table rows)
+- [x] Improved form styling: better input focus states, field grouping, helper text
+- [x] Add subtle hover effects on table rows and cards
+- [x] Smooth transitions on checkbox toggle, note popover open/close
+- [x] Better mobile responsive layout with collapsible navigation
+- [x] Progress bar CSS component (reusable for dashboard and sprint detail)
 
 **7.2 - Habit sprint scope field**
 - [ ] Add "Sprint Scope" dropdown to habit form: "Global (all sprints)" or current active sprint name

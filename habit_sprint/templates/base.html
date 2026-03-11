@@ -10,9 +10,13 @@
 </head>
 <body>
   <nav>
-    <a href="/" class="{% if active_nav == 'dashboard' %}active{% endif %}">Dashboard</a>
-    <a href="/habits" class="{% if active_nav == 'habits' %}active{% endif %}">Habits</a>
-    <a href="/sprints" class="{% if active_nav == 'sprints' %}active{% endif %}">Sprints</a>
+    <span class="nav-brand">Habit Sprint</span>
+    <button class="nav-toggle" onclick="this.nextElementSibling.classList.toggle('open')" aria-label="Toggle navigation">&#9776;</button>
+    <div class="nav-links">
+      <a href="/" class="{% if active_nav == 'dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="/habits" class="{% if active_nav == 'habits' %}active{% endif %}">Habits</a>
+      <a href="/sprints" class="{% if active_nav == 'sprints' %}active{% endif %}">Sprints</a>
+    </div>
   </nav>
   <main>
     {% if success_message %}
