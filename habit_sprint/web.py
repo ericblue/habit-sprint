@@ -499,6 +499,57 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             return RedirectResponse(url=f"/sprints/{sprint_id}?msg=Error:+{result['error']}", status_code=303)
         return RedirectResponse(url=f"/sprints/{sprint_id}?msg=Retrospective+saved", status_code=303)
 
+    @app.get("/sprints/{sprint_id}/habits", response_class=HTMLResponse)
+    async def sprint_habits(request: Request, sprint_id: str):
+        """Show habits management page for a sprint."""
+        # Get sprint info
+        list_result = execute({"action": "list_sprints", "payload": {}}, request.app.state.db_path)
+        sprint = None
+        if list_result["status"] == "success":
+            for s in list_result["data"]["sprints"]:
+                if s["id"] == sprint_id:
+                    sprint = s
+                    break
+        if sprint is None:
+            return HTMLResponse("Sprint not found", status_code=404)
+
+        # Get all non-archived habits
+        habits_result = execute(
+            {"action": "list_habits", "payload": {"include_archived": False}},
+            request.app.state.db_path,
+        )
+        all_habits = habits_result["data"]["habits"] if habits_result["status"] == "success" else []
+
+        sprint_habits_list = [h for h in all_habits if h.get("sprint_id") == sprint_id]
+        global_habits_list = [h for h in all_habits if not h.get("sprint_id")]
+
+        return templates.TemplateResponse("sprint_habits.html", {
+            "request": request,
+            "sprint": sprint,
+            "sprint_habits": sprint_habits_list,
+            "global_habits": global_habits_list,
+            "active_nav": "sprints",
+            "success_message": request.query_params.get("msg"),
+        })
+
+    @app.post("/sprints/{sprint_id}/habits/add")
+    async def sprint_habit_add(request: Request, sprint_id: str, habit_id: str = Form(...)):
+        """Add a global habit to this sprint."""
+        execute(
+            {"action": "update_habit", "payload": {"id": habit_id, "sprint_id": sprint_id}},
+            request.app.state.db_path,
+        )
+        return RedirectResponse(url=f"/sprints/{sprint_id}/habits?msg=Habit+added+to+sprint", status_code=303)
+
+    @app.post("/sprints/{sprint_id}/habits/remove")
+    async def sprint_habit_remove(request: Request, sprint_id: str, habit_id: str = Form(...)):
+        """Remove a habit from this sprint (make it global)."""
+        execute(
+            {"action": "update_habit", "payload": {"id": habit_id, "sprint_id": None}},
+            request.app.state.db_path,
+        )
+        return RedirectResponse(url=f"/sprints/{sprint_id}/habits?msg=Habit+removed+from+sprint", status_code=303)
+
     @app.post("/sprints/{sprint_id}/archive")
     async def archive_sprint(request: Request, sprint_id: str):
         execute({"action": "archive_sprint", "payload": {"sprint_id": sprint_id}}, request.app.state.db_path)
