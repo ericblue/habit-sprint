@@ -15,6 +15,8 @@ HABIT_SPRINT   = $(VENV_BIN)/habit-sprint
 CLAUDE_SKILLS_DIR  = $(HOME)/.claude/skills
 OPENCLAW_SKILLS_DIR ?= $(HOME)/clawd/skills
 
+PORT           ?= 8000
+
 SKILL_NAME     = habit-sprint
 SKILL_SOURCE   = SKILLS.md
 SKILL_TARGET   = SKILL.md
@@ -79,6 +81,19 @@ run-example: ## Run a sample list_sprints action against a temp database
 run-dashboard: ## Run sprint_dashboard with markdown format (demo)
 	@echo "Running sprint_dashboard (markdown format)..."
 	@$(HABIT_SPRINT) --db /tmp/habit-sprint-demo.db --json '{"action": "sprint_dashboard"}' --format markdown
+
+# ── Web Server ────────────────────────────────────────────────────────────────
+
+.PHONY: serve install-web
+
+install-web: venv ## Install habit-sprint with web dependencies (FastAPI, uvicorn, jinja2)
+	$(PIP) install -e ".[web]"
+	@echo ""
+	@echo "habit-sprint installed with web dependencies."
+	@echo "Run 'make serve' to start the web UI."
+
+serve: ## Start the web UI server (use PORT=NNNN to change port, default 8000)
+	$(HABIT_SPRINT) --web --port $(PORT)
 
 # ── Testing ────────────────────────────────────────────────────────────────────
 
@@ -179,4 +194,5 @@ help: ## Show available targets
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-26s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 	@echo "Variables:"
+	@echo "  PORT                 Web server port (default: 8000)"
 	@echo "  OPENCLAW_SKILLS_DIR  Override OpenClaw skills directory (default: ~/clawd/skills)"

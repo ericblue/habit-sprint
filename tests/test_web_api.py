@@ -382,9 +382,9 @@ class TestSprintCRUDWeb:
         assert "/sprints" in resp.headers["location"]
 
     def test_sprint_create_invalid_dates(self, web_client):
-        # Creating a second sprint while one is active should fail
+        # Creating an overlapping sprint while one is active should fail
         resp = web_client.post("/sprints", data={
-            "start_date": "2026-04-01", "end_date": "2026-04-14",
+            "start_date": "2026-03-10", "end_date": "2026-03-20",
             "theme": "", "focus_goals": "",
         })
         # Should re-render form with error

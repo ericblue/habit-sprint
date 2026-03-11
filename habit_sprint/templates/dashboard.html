@@ -53,15 +53,16 @@
       {% for d in dates %}
       {% set ds = d.isoformat() %}
       {% set val = habit.daily.get(ds, 0) %}
+      {% set note = habit.notes.get(ds, '') if habit.notes is defined else '' %}
       <td id="cell-{{ habit.habit_id }}-{{ ds }}" class="toggle-cell">
         <input type="checkbox"
                {% if val > 0 %}checked{% endif %}
                hx-post="/toggle/{{ habit.habit_id }}/{{ ds }}{% if week is not none %}?week={{ week }}{% endif %}"
                hx-target="#cell-{{ habit.habit_id }}-{{ ds }}"
                hx-swap="outerHTML"
-               data-habit-id="{{ habit.habit_id }}"
-               data-date="{{ ds }}"
         >
+        {% if note %}<span class="note-dot" title="Has note"></span>{% endif %}
+        <span class="note-icon" onclick="openNote('{{ habit.habit_id }}', '{{ ds }}', this.parentElement)" title="Add/view note">&#9998;</span>
       </td>
       {% endfor %}
       <td class="pct-cell">{{ habit.week_actual }}/{{ habit.target_per_week }}{% if week is none %}x{{ (dates|length / 7)|round(0, 'ceil')|int }}{% endif %}</td>
@@ -105,5 +106,45 @@
     document.getElementById("toast-container").appendChild(toast);
     setTimeout(function() { toast.remove(); }, 3200);
   });
+
+  // Note popover
+  function openNote(habitId, date, cell) {
+    // Close any existing popover
+    var existing = document.querySelector(".note-popover");
+    if (existing) existing.remove();
+
+    // Fetch current note from the entry
+    fetch("/api/entry/" + habitId + "/" + date)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var note = (data && data.note) || "";
+        var pop = document.createElement("div");
+        pop.className = "note-popover";
+        pop.innerHTML =
+          '<textarea placeholder="Add a note...">' + note.replace(/</g, "&lt;") + '</textarea>' +
+          '<div class="note-actions">' +
+          '<button onclick="this.closest(\'.note-popover\').remove()">Cancel</button>' +
+          '<button class="save" onclick="saveNote(\'' + habitId + '\', \'' + date + '\', this)">Save</button>' +
+          '</div>';
+        cell.appendChild(pop);
+        pop.querySelector("textarea").focus();
+      });
+  }
+
+  function saveNote(habitId, date, btn) {
+    var pop = btn.closest(".note-popover");
+    var note = pop.querySelector("textarea").value;
+    var cell = pop.parentElement;
+    var weekParam = {% if week is not none %}"?week={{ week }}"{% else %}""{% endif %};
+    fetch("/note/" + habitId + "/" + date + weekParam, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({note: note})
+    })
+    .then(function(r) { return r.text(); })
+    .then(function(html) {
+      cell.outerHTML = html;
+    });
+  }
 </script>
 {% endblock %}

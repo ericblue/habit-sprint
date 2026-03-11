@@ -51,6 +51,26 @@ def _execute_action(db_path: str, action: str, payload: dict | None = None) -> J
     return JSONResponse(content=result)
 
 
+def _build_cell_html(habit_id: str, date: str, checked: bool, note: str, week: int | None, css_class: str = "") -> str:
+    """Build the HTML for a single grid cell with checkbox and optional note indicator."""
+    checked_attr = " checked" if checked else ""
+    cell_id = f"cell-{habit_id}-{date}"
+    week_param = f"?week={week}" if week is not None else ""
+    note_dot = '<span class="note-dot" title="Has note"></span>' if note else ""
+    extra_class = f" {css_class}" if css_class else ""
+    return (
+        f'<td id="{cell_id}" class="toggle-cell{extra_class}">'
+        f'<input type="checkbox"{checked_attr}'
+        f' hx-post="/toggle/{habit_id}/{date}{week_param}"'
+        f' hx-target="#{cell_id}"'
+        f' hx-swap="outerHTML"'
+        f">"
+        f'{note_dot}'
+        f'<span class="note-icon" onclick="openNote(\'{habit_id}\', \'{date}\', this.parentElement)" title="Add/view note">&#9998;</span>'
+        f"</td>"
+    )
+
+
 def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -119,6 +139,16 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             view_dates.append(d)
             d += timedelta(days=1)
 
+        # Attach notes to each habit for template rendering
+        conn = get_connection(db_path)
+        for cat in data["categories"]:
+            for habit in cat["habits"]:
+                rows = conn.execute(
+                    "SELECT date, note FROM entries WHERE habit_id = ? AND note IS NOT NULL AND note != ''",
+                    (habit["habit_id"],),
+                ).fetchall()
+                habit["notes"] = {r[0]: r[1] for r in rows}
+
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
             "active_nav": "dashboard",
@@ -165,6 +195,18 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
     @app.get("/api/sprint/active")
     async def api_active_sprint(request: Request):
         return _execute_action(request.app.state.db_path, "get_active_sprint")
+
+    @app.get("/api/entry/{habit_id}/{entry_date}")
+    async def api_get_entry(request: Request, habit_id: str, entry_date: str):
+        """Get a single entry's value and note."""
+        conn = get_connection(request.app.state.db_path)
+        row = conn.execute(
+            "SELECT value, note FROM entries WHERE habit_id = ? AND date = ?",
+            (habit_id, entry_date),
+        ).fetchone()
+        if not row:
+            return JSONResponse({"value": 0, "note": ""})
+        return JSONResponse({"value": row[0], "note": row[1] or ""})
 
     # --- Habit management pages ---
 
@@ -315,7 +357,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
     @app.get("/sprints/new", response_class=HTMLResponse)
     async def sprint_form(request: Request):
         return templates.TemplateResponse("sprint_form.html", {
-            "request": request, "error": None, "active_nav": "sprints",
+            "request": request, "error": None, "active_nav": "sprints", "values": {},
         })
 
     @app.post("/sprints", response_class=HTMLResponse)
@@ -327,16 +369,19 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         focus_goals: str = Form(""),
     ):
         goals = [g.strip() for g in focus_goals.splitlines() if g.strip()]
-        payload = {
+        payload: dict = {
             "start_date": start_date,
             "end_date": end_date,
-            "theme": theme or None,
-            "focus_goals": goals,
         }
+        if theme.strip():
+            payload["theme"] = theme.strip()
+        if goals:
+            payload["focus_goals"] = goals
         result = execute({"action": "create_sprint", "payload": payload}, request.app.state.db_path)
         if result["status"] == "error":
             return templates.TemplateResponse("sprint_form.html", {
                 "request": request, "error": result["error"], "active_nav": "sprints",
+                "values": {"start_date": start_date, "end_date": end_date, "theme": theme, "focus_goals": focus_goals},
             })
         return RedirectResponse(url="/sprints", status_code=303)
 
@@ -376,7 +421,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         # Check current state via entries table
         conn = get_connection(db)
         row = conn.execute(
-            "SELECT value FROM entries WHERE habit_id = ? AND date = ?",
+            "SELECT value, note FROM entries WHERE habit_id = ? AND date = ?",
             (habit_id, toggle_date),
         ).fetchone()
 
@@ -396,26 +441,13 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
 
         # Re-check new state
         new_row = conn.execute(
-            "SELECT value FROM entries WHERE habit_id = ? AND date = ?",
+            "SELECT value, note FROM entries WHERE habit_id = ? AND date = ?",
             (habit_id, toggle_date),
         ).fetchone()
         checked = bool(new_row and new_row[0] > 0)
+        note = (new_row[1] or "") if new_row else ""
 
-        # Build the checkbox cell HTML
-        checked_attr = " checked" if checked else ""
-        cell_id = f"cell-{habit_id}-{toggle_date}"
-        week_param = f"?week={week}" if week is not None else ""
-        cell_html = (
-            f'<td id="{cell_id}" class="toggle-cell just-toggled">'
-            f'<input type="checkbox"{checked_attr}'
-            f' hx-post="/toggle/{habit_id}/{toggle_date}{week_param}"'
-            f' hx-target="#{cell_id}"'
-            f' hx-swap="outerHTML"'
-            f' data-habit-id="{habit_id}"'
-            f' data-date="{toggle_date}"'
-            f">"
-            f"</td>"
-        )
+        cell_html = _build_cell_html(habit_id, toggle_date, checked, note, week, css_class="just-toggled")
 
         # Compute updated daily total for this date (OOB swap)
         dashboard_result = execute(
@@ -433,5 +465,36 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             )
 
         return HTMLResponse(content=cell_html + oob_html)
+
+    # --- Note endpoint ---
+
+    class NoteBody(BaseModel):
+        note: str = ""
+
+    @app.post("/note/{habit_id}/{note_date}")
+    async def save_note(request: Request, habit_id: str, note_date: str, body: NoteBody, week: Optional[int] = None):
+        """Save a note on an existing entry."""
+        db = request.app.state.db_path
+        conn = get_connection(db)
+        row = conn.execute(
+            "SELECT value, note FROM entries WHERE habit_id = ? AND date = ?",
+            (habit_id, note_date),
+        ).fetchone()
+
+        if not row:
+            return Response(content="", status_code=404)
+
+        # Update note via log_date (upsert preserves value)
+        note_text = body.note.strip() if body.note else None
+        result = execute({"action": "log_date", "payload": {
+            "habit_id": habit_id, "date": note_date, "value": row[0], "note": note_text,
+        }}, db)
+
+        if result["status"] == "error":
+            return Response(content="", status_code=422)
+
+        checked = row[0] > 0
+        cell_html = _build_cell_html(habit_id, note_date, checked, note_text or "", week)
+        return HTMLResponse(content=cell_html)
 
     return app
