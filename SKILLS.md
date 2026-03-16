@@ -6,7 +6,7 @@ allowed-tools: Bash(habit-sprint:*) Bash(echo:*) Read
 
 # Habit Sprint — LLM Skill Reference
 
-**Version:** 1.0
+**Version:** 1.1
 **Engine:** habit-sprint (SQLite-backed, JSON-contract-driven behavioral state engine)
 
 ## Overview
@@ -95,9 +95,25 @@ Temporary habits tied to a single sprint. They only appear in that sprint's quer
 | "Just for this two-week cycle" | Sprint-scoped |
 | User doesn't specify | Default to **global** — most habits are intended to persist |
 
+### Per-Sprint Goal Overrides
+
+Global habits have a default `target_per_week` and `weight`, but these can be **overridden for any specific sprint** using the `set_sprint_habit_goal` action. This lets you adjust goals per sprint without modifying the habit itself.
+
+**Use cases:**
+- Increasing a target during an intensive sprint: "I want to read 7x/week this sprint instead of the usual 5"
+- Adjusting weight to reflect sprint priorities: "Gym is the focus this sprint, bump its weight to 3"
+- Temporarily reducing a target: "I'm traveling next sprint, lower daily-walk to 3x/week"
+
+The override only applies to the specified sprint. Future sprints use the habit's default values unless they also have overrides. All reports, dashboards, and scores automatically use the sprint-specific goal when one exists.
+
+```json
+// Override reading target to 7/week for sprint 2026-S06
+{"action": "set_sprint_habit_goal", "payload": {"sprint_id": "2026-S06", "habit_id": "reading", "target_per_week": 7, "weight": 2}}
+```
+
 ### Querying behavior
 
-When reporting functions receive a `sprint_id`, they return **both** sprint-scoped habits for that sprint **and** all global habits. This means global habits are always visible in every sprint's dashboard, reports, and scores without any extra configuration.
+When reporting functions receive a `sprint_id`, they return **both** sprint-scoped habits for that sprint **and** all global habits. This means global habits are always visible in every sprint's dashboard, reports, and scores without any extra configuration. If a habit has a per-sprint goal override, all scoring and reporting uses the overridden values for that sprint.
 
 ---
 
@@ -188,7 +204,7 @@ Every response follows this exact structure. Success and error fields are never 
 
 ## Action Routing Table
 
-### Mutation Actions (15)
+### Mutation Actions (19)
 
 Mutations modify database state. Routed through `engine.py`.
 
@@ -201,8 +217,13 @@ Mutations modify database state. Routed through `engine.py`.
 | `get_active_sprint` | Sprint | Get the currently active sprint |
 | `create_habit` | Habit | Create a new habit |
 | `update_habit` | Habit | Update an existing habit |
-| `archive_habit` | Habit | Archive a habit |
+| `archive_habit` | Habit | Archive a habit (soft delete, reversible) |
+| `unarchive_habit` | Habit | Restore an archived habit |
+| `delete_habit` | Habit | Permanently delete a habit and all its data |
 | `list_habits` | Habit | List habits with optional filters |
+| `set_sprint_habit_goal` | Goal | Override a habit's target/weight for a specific sprint |
+| `get_sprint_habit_goal` | Goal | Query the sprint-specific goal for a habit |
+| `delete_sprint_habit_goal` | Goal | Remove a sprint-specific goal override |
 | `log_date` | Entry | Log a single entry (idempotent upsert) |
 | `log_range` | Entry | Log entries across a date range |
 | `bulk_set` | Entry | Log entries for specific non-contiguous dates |
@@ -515,6 +536,36 @@ Restores an archived habit by setting `archived=0`. The habit can then receive n
 
 ---
 
+### delete_habit
+
+**Permanently deletes** a habit and all associated data (entries, sprint goal overrides). This is irreversible — use `archive_habit` for soft deletion. Only use this when the user explicitly wants to remove a habit and all its history.
+
+**Payload:**
+
+| Field | Type | Required | Description | Constraints |
+|---|---|---|---|---|
+| `id` | str | yes | Habit ID to delete | Must exist |
+
+**Behavior:**
+- Deletes the habit record from the `habits` table.
+- Cascade-deletes all entries in the `entries` table for this habit.
+- Cascade-deletes all sprint goal overrides in `sprint_habit_goals` for this habit.
+- Returns the habit object as it existed before deletion.
+
+**Response data:** Returns the full habit object (the state before deletion).
+
+**Example:**
+
+```json
+// Request
+{"action": "delete_habit", "payload": {"id": "cold-plunge"}}
+
+// Response
+{"status": "success", "data": {"id": "cold-plunge", "name": "Cold Plunge Challenge", "category": "health", "target_per_week": 5, "weight": 1, "unit": "count", "sprint_id": "2026-S05", "archived": 0, "created_at": "2026-03-01T10:00:00", "updated_at": "2026-03-01T10:00:00"}, "error": null}
+```
+
+---
+
 ### list_habits
 
 Lists habits with optional filters. When `sprint_id` is provided, returns both sprint-scoped habits and global habits (sprint_id IS NULL).
@@ -770,6 +821,130 @@ Retrieves the retrospective for a specific sprint.
 
 // Response
 {"status": "success", "data": {"id": 1, "sprint_id": "2026-S04", "what_went_well": "Consistent gym attendance. Hit 4x/week every week.", "what_to_improve": "Journaling dropped off in week 2.", "ideas": "Try morning journaling instead of evening.", "created_at": "2026-03-01T09:00:00", "updated_at": "2026-03-01T09:00:00"}, "error": null}
+```
+
+---
+
+### set_sprint_habit_goal
+
+Sets or updates a per-sprint goal override for a habit. This overrides the habit's default `target_per_week` and `weight` for a specific sprint without modifying the habit itself. Uses INSERT OR REPLACE (upsert).
+
+**Payload:**
+
+| Field | Type | Required | Description | Constraints |
+|---|---|---|---|---|
+| `sprint_id` | str | yes | Sprint to set the goal for | Must exist |
+| `habit_id` | str | yes | Habit to override | Must exist |
+| `target_per_week` | int | yes | Sprint-specific target | 1–7 |
+| `weight` | int | no | Sprint-specific weight | 1–3. Default: 1 |
+
+**Behavior:**
+- If a goal already exists for this sprint+habit pair, it is replaced.
+- All reports, dashboards, and scores for this sprint will use the overridden values.
+- Does not modify the habit's default values — only affects this specific sprint.
+
+**Response data:**
+
+```json
+{
+  "sprint_id": "2026-S06",
+  "habit_id": "reading",
+  "target_per_week": 7,
+  "weight": 2,
+  "created_at": "2026-03-15T10:00:00",
+  "updated_at": "2026-03-15T10:00:00"
+}
+```
+
+**Example:**
+
+```json
+// Request
+{"action": "set_sprint_habit_goal", "payload": {"sprint_id": "2026-S06", "habit_id": "reading", "target_per_week": 7, "weight": 2}}
+
+// Response
+{"status": "success", "data": {"sprint_id": "2026-S06", "habit_id": "reading", "target_per_week": 7, "weight": 2, "created_at": "2026-03-15T10:00:00", "updated_at": "2026-03-15T10:00:00"}, "error": null}
+```
+
+---
+
+### get_sprint_habit_goal
+
+Queries the sprint-specific goal override for a habit. Returns `null` for the goal if no override exists (the habit's defaults apply).
+
+**Payload:**
+
+| Field | Type | Required | Description | Constraints |
+|---|---|---|---|---|
+| `sprint_id` | str | yes | Sprint to query | — |
+| `habit_id` | str | yes | Habit to query | — |
+
+**Response data (with override):**
+
+```json
+{
+  "sprint_id": "2026-S06",
+  "habit_id": "reading",
+  "target_per_week": 7,
+  "weight": 2,
+  "created_at": "2026-03-15T10:00:00",
+  "updated_at": "2026-03-15T10:00:00"
+}
+```
+
+**Response data (no override):**
+
+```json
+{
+  "sprint_id": "2026-S06",
+  "habit_id": "reading",
+  "goal": null
+}
+```
+
+**Example:**
+
+```json
+// Request
+{"action": "get_sprint_habit_goal", "payload": {"sprint_id": "2026-S06", "habit_id": "reading"}}
+
+// Response
+{"status": "success", "data": {"sprint_id": "2026-S06", "habit_id": "reading", "target_per_week": 7, "weight": 2, "created_at": "2026-03-15T10:00:00", "updated_at": "2026-03-15T10:00:00"}, "error": null}
+```
+
+---
+
+### delete_sprint_habit_goal
+
+Removes a sprint-specific goal override, reverting the habit to its default `target_per_week` and `weight` for that sprint.
+
+**Payload:**
+
+| Field | Type | Required | Description | Constraints |
+|---|---|---|---|---|
+| `sprint_id` | str | yes | Sprint to remove the override from | — |
+| `habit_id` | str | yes | Habit to remove the override for | — |
+
+**Response data:**
+
+```json
+{
+  "sprint_id": "2026-S06",
+  "habit_id": "reading",
+  "deleted": true
+}
+```
+
+`deleted` is `true` if an override existed and was removed, `false` if no override existed.
+
+**Example:**
+
+```json
+// Request
+{"action": "delete_sprint_habit_goal", "payload": {"sprint_id": "2026-S06", "habit_id": "reading"}}
+
+// Response
+{"status": "success", "data": {"sprint_id": "2026-S06", "habit_id": "reading", "deleted": true}, "error": null}
 ```
 
 ---
@@ -1225,6 +1400,8 @@ The richest action in the system. Returns a combined view of the full sprint sta
 - **Habit slug format.** Habit IDs must match `^[a-z]+(-[a-z]+)*$` (lowercase letters and hyphens only).
 - **Sprint ID auto-generation.** Sprint IDs are auto-generated in `YYYY-S##` format based on the year and existing sprint count.
 - **Global vs sprint-scoped habits.** When `sprint_id` is null, the habit is global and included in every sprint's queries. When set, the habit is scoped to that specific sprint.
+- **Per-sprint goal overrides.** `set_sprint_habit_goal` overrides a habit's target and weight for a specific sprint without modifying the habit's defaults. Reports and scores automatically use the override when present.
+- **Delete is permanent.** `delete_habit` removes the habit and all its entries and goal overrides. Use `archive_habit` for reversible removal.
 - **Week boundaries.** All weekly calculations use fixed Mon-Sun weeks.
 
 ---
@@ -1259,6 +1436,10 @@ This section shows how an LLM should translate natural language user requests in
 | "What was my score yesterday?" | `{"action": "daily_score", "payload": {"date": "2026-03-04"}}` |
 | "Which categories am I doing best in?" | `{"action": "category_report", "payload": {}}` |
 | "I want to write a retro for this sprint. Gym was great, journaling needs work, and I want to try morning pages next time." | `{"action": "add_retro", "payload": {"sprint_id": "2026-S05", "what_went_well": "Gym was great", "what_to_improve": "Journaling needs work", "ideas": "Try morning pages next time"}}` |
+| "I want to read 7 days a week this sprint instead of 5" | `{"action": "set_sprint_habit_goal", "payload": {"sprint_id": "2026-S06", "habit_id": "reading", "target_per_week": 7, "weight": 2}}` |
+| "Reset reading back to its normal target for this sprint" | `{"action": "delete_sprint_habit_goal", "payload": {"sprint_id": "2026-S06", "habit_id": "reading"}}` |
+| "Delete the cold-plunge habit, I'm done with it" | `{"action": "delete_habit", "payload": {"id": "cold-plunge"}}` |
+| "What's my reading goal for this sprint?" | `{"action": "get_sprint_habit_goal", "payload": {"sprint_id": "2026-S06", "habit_id": "reading"}}` |
 
 **Translation guidelines for LLMs:**
 
@@ -1267,3 +1448,5 @@ This section shows how an LLM should translate natural language user requests in
 3. **Default to the active sprint** — When the user does not specify a sprint, omit `sprint_id` from the payload. The engine defaults to the active sprint.
 4. **Ask when unsure** — If a required field cannot be confidently inferred (e.g., the user says "add a habit" but does not specify a category or target), ask the user rather than guessing.
 5. **Multi-habit requests require multiple actions** — If the user says "log reading and gym for today", emit two separate `log_date` actions, one per habit.
+6. **Prefer archive over delete** — When the user says "remove" or "get rid of", default to `archive_habit` (reversible). Only use `delete_habit` when the user says "delete", "permanently remove", or explicitly confirms permanent deletion.
+7. **Goal overrides vs habit updates** — When the user says "change my reading target to 7 this sprint", use `set_sprint_habit_goal` (sprint-specific override). When they say "change my reading target to 7" (no sprint qualifier), use `update_habit` (permanent default change).
