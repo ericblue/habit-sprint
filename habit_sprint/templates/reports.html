@@ -127,8 +127,85 @@
   {% elif active_tab == 'heatmap' %}
   <div class="report-placeholder">
     <h2>Habit Heatmap</h2>
-    <p>GitHub-style contribution calendar for your habits. Coming soon.</p>
+    <p>GitHub-style contribution calendar showing daily check-in intensity.</p>
+    <div style="margin-bottom: 1rem;">
+      <label for="heatmap-habit-select"><strong>Habit:</strong></label>
+      <select id="heatmap-habit-select" style="margin-left: 0.5rem; padding: 0.3rem;">
+        <option value="">All Habits</option>
+        {% for habit in habits %}
+        <option value="{{ habit.id }}">{{ habit.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
     <div id="cal-heatmap"></div>
+    <div id="cal-heatmap-legend" style="margin-top: 0.5rem;"></div>
+    <script>
+    (function() {
+      const container = document.getElementById('cal-heatmap');
+      const select = document.getElementById('heatmap-habit-select');
+      let cal = null;
+
+      function renderHeatmap(habitId) {
+        if (cal) {
+          cal.destroy();
+          container.innerHTML = '';
+        }
+
+        const url = habitId
+          ? '/api/reports/heatmap?habit_id=' + encodeURIComponent(habitId)
+          : '/api/reports/heatmap';
+
+        fetch(url)
+          .then(function(r) { return r.json(); })
+          .then(function(result) {
+            const rawData = result.data || {};
+            // Convert {date: value} to [{date, value}] for cal-heatmap
+            const data = Object.keys(rawData).map(function(d) {
+              return { date: d, value: rawData[d] };
+            });
+
+            cal = new CalHeatmap();
+            cal.paint({
+              data: {
+                source: data,
+                x: 'date',
+                y: 'value',
+                defaultValue: 0,
+              },
+              date: {
+                start: new Date(new Date().getFullYear(), 0, 1),
+              },
+              range: 12,
+              domain: {
+                type: 'month',
+                label: { position: 'top' },
+              },
+              subDomain: {
+                type: 'day',
+                width: 12,
+                height: 12,
+                radius: 2,
+              },
+              scale: {
+                color: {
+                  range: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+                  type: 'threshold',
+                  domain: [1, 2, 3, 4],
+                },
+              },
+              itemSelector: '#cal-heatmap',
+            });
+          });
+      }
+
+      select.addEventListener('change', function() {
+        renderHeatmap(this.value);
+      });
+
+      // Initial render
+      renderHeatmap('');
+    })();
+    </script>
   </div>
   {% elif active_tab == 'category-balance' %}
   <div class="report-placeholder">

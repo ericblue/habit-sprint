@@ -828,16 +828,50 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         """Render the reports page with tab navigation."""
         valid_tabs = {"sprint-comparison", "heatmap", "category-balance", "trends", "streaks"}
         active_tab = tab if tab in valid_tabs else "sprint-comparison"
+
+        # For heatmap tab, load habit list for the dropdown
+        habits = []
+        if active_tab == "heatmap":
+            result = execute(
+                {"action": "list_habits", "payload": {"include_archived": False}},
+                request.app.state.db_path,
+            )
+            if result["status"] == "success":
+                habits = result["data"]["habits"]
+
         return templates.TemplateResponse("reports.html", {
             "request": request,
             "active_nav": "reports",
             "active_tab": active_tab,
+            "habits": habits,
         })
 
     @app.get("/api/reports/sprint-comparison")
     async def api_sprint_comparison(request: Request):
         """Return sprint comparison data as JSON."""
         return _execute_action(request.app.state.db_path, "cross_sprint_report")
+
+    @app.get("/api/reports/heatmap")
+    async def api_reports_heatmap(request: Request, habit_id: Optional[str] = None):
+        """Return date-to-value mapping for the heatmap.
+
+        If habit_id is provided, returns entries for that habit.
+        If habit_id is omitted or empty, returns aggregated counts across all habits.
+        """
+        conn = get_connection(request.app.state.db_path)
+
+        if habit_id:
+            rows = conn.execute(
+                "SELECT date, SUM(value) as total FROM entries WHERE habit_id = ? AND value > 0 GROUP BY date",
+                (habit_id,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT date, SUM(value) as total FROM entries WHERE value > 0 GROUP BY date",
+            ).fetchall()
+
+        data = {row["date"]: row["total"] for row in rows}
+        return JSONResponse({"status": "success", "data": data, "error": None})
 
     @app.post("/sprints/{sprint_id}/archive")
     async def archive_sprint(request: Request, sprint_id: str):

@@ -1054,3 +1054,84 @@ class TestSprintComparisonReport:
         assert sprints[0]["trend_delta"] is None
         # Second sprint has a trend_delta (diff from first)
         assert sprints[1]["trend_delta"] is not None
+
+
+class TestHeatmapAPI:
+    """Test the heatmap API endpoint (task 9.3)."""
+
+    def test_heatmap_api_returns_200_empty(self, client):
+        """GET /api/reports/heatmap returns 200 with empty data when no entries."""
+        resp = client.get("/api/reports/heatmap")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "success"
+        assert body["data"] == {}
+
+    def test_heatmap_api_all_habits(self, seeded_client):
+        """GET /api/reports/heatmap returns aggregated data across all habits."""
+        # Log entries for two habits on different and overlapping dates
+        seeded_client.post("/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-05", "value": 1,
+        })
+        seeded_client.post("/api/log", json={
+            "habit_id": "reading", "date": "2026-03-05", "value": 1,
+        })
+        seeded_client.post("/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-06", "value": 1,
+        })
+
+        resp = seeded_client.get("/api/reports/heatmap")
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        # Two habits on 2026-03-05 → aggregated value of 2
+        assert data["2026-03-05"] == 2
+        # One habit on 2026-03-06 → value of 1
+        assert data["2026-03-06"] == 1
+
+    def test_heatmap_api_specific_habit(self, seeded_client):
+        """GET /api/reports/heatmap?habit_id=X returns data for that habit only."""
+        seeded_client.post("/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-05", "value": 1,
+        })
+        seeded_client.post("/api/log", json={
+            "habit_id": "reading", "date": "2026-03-05", "value": 1,
+        })
+
+        resp = seeded_client.get("/api/reports/heatmap?habit_id=exercise")
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["2026-03-05"] == 1
+
+        resp = seeded_client.get("/api/reports/heatmap?habit_id=reading")
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["2026-03-05"] == 1
+
+    def test_heatmap_api_unknown_habit_returns_empty(self, seeded_client):
+        """GET /api/reports/heatmap?habit_id=nonexistent returns empty data."""
+        resp = seeded_client.get("/api/reports/heatmap?habit_id=nonexistent")
+        assert resp.status_code == 200
+        assert resp.json()["data"] == {}
+
+    def test_heatmap_api_excludes_zero_values(self, seeded_client):
+        """Deleted entries (value=0) should not appear in heatmap data."""
+        seeded_client.post("/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-05", "value": 1,
+        })
+        # Delete the entry
+        seeded_client.request("DELETE", "/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-05",
+        })
+
+        resp = seeded_client.get("/api/reports/heatmap")
+        assert resp.status_code == 200
+        assert resp.json()["data"] == {}
+
+    def test_heatmap_tab_shows_habit_dropdown(self, seeded_client):
+        """Heatmap tab includes habit selection dropdown."""
+        resp = seeded_client.get("/reports?tab=heatmap")
+        assert resp.status_code == 200
+        assert "heatmap-habit-select" in resp.text
+        assert "All Habits" in resp.text
+        assert "Exercise" in resp.text
+        assert "Read" in resp.text
