@@ -1274,6 +1274,8 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             "sprint_habit_goals": shg_count,
         }
 
+        from habit_sprint import __version__
+
         return templates.TemplateResponse("settings.html", {
             "request": request,
             "active_nav": "settings",
@@ -1281,6 +1283,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             "db_size": db_size,
             "schema_version": schema_version,
             "stats": stats,
+            "version": __version__,
         })
 
     @app.get("/export/{table_name}.csv")
