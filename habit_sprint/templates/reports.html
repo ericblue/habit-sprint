@@ -126,25 +126,69 @@
   })();
   </script>
   {% elif active_tab == 'heatmap' %}
-  <div class="report-placeholder">
+  <div class="report-section">
     <h2>Habit Heatmap</h2>
     <p>GitHub-style contribution calendar showing daily check-in intensity.</p>
-    <div style="margin-bottom: 1rem;">
-      <label for="heatmap-habit-select"><strong>Habit:</strong></label>
-      <select id="heatmap-habit-select" style="margin-left: 0.5rem; padding: 0.3rem;">
-        <option value="">All Habits</option>
-        {% for habit in habits %}
-        <option value="{{ habit.id }}">{{ habit.name }}</option>
-        {% endfor %}
-      </select>
+    <div style="margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <div>
+        <label for="heatmap-habit-select"><strong>Habit:</strong></label>
+        <select id="heatmap-habit-select" style="margin-left: 0.5rem; padding: 0.3rem;">
+          <option value="">All Habits</option>
+          {% for habit in habits %}
+          <option value="{{ habit.id }}">{{ habit.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="heatmap-year-select"><strong>Year:</strong></label>
+        <select id="heatmap-year-select" style="margin-left: 0.5rem; padding: 0.3rem;">
+        </select>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+      <button id="heatmap-prev" style="padding: 0.3rem 0.8rem; cursor: pointer;" title="Previous year">&larr; Prev</button>
+      <span id="heatmap-year-label" style="font-weight: bold; min-width: 4rem; text-align: center;"></span>
+      <button id="heatmap-next" style="padding: 0.3rem 0.8rem; cursor: pointer;" title="Next year">Next &rarr;</button>
+    </div>
+    <div id="heatmap-empty" style="display:none; padding: 1rem; color: #888;">
+      No check-in data found. Log some habits to see your heatmap!
     </div>
     <div id="cal-heatmap"></div>
-    <div id="cal-heatmap-legend" style="margin-top: 0.5rem;"></div>
+    <div id="cal-heatmap-legend" style="margin-top: 0.75rem; display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; color: #666;">
+      <span>Less</span>
+      <span style="display:inline-block;width:12px;height:12px;background:#ebedf0;border-radius:2px;"></span>
+      <span style="display:inline-block;width:12px;height:12px;background:#9be9a8;border-radius:2px;"></span>
+      <span style="display:inline-block;width:12px;height:12px;background:#40c463;border-radius:2px;"></span>
+      <span style="display:inline-block;width:12px;height:12px;background:#30a14e;border-radius:2px;"></span>
+      <span style="display:inline-block;width:12px;height:12px;background:#216e39;border-radius:2px;"></span>
+      <span>More</span>
+    </div>
     <script>
     (function() {
-      const container = document.getElementById('cal-heatmap');
-      const select = document.getElementById('heatmap-habit-select');
-      let cal = null;
+      var container = document.getElementById('cal-heatmap');
+      var select = document.getElementById('heatmap-habit-select');
+      var yearSelect = document.getElementById('heatmap-year-select');
+      var prevBtn = document.getElementById('heatmap-prev');
+      var nextBtn = document.getElementById('heatmap-next');
+      var yearLabel = document.getElementById('heatmap-year-label');
+      var emptyMsg = document.getElementById('heatmap-empty');
+      var cal = null;
+      var currentYear = new Date().getFullYear();
+      var allData = {};
+
+      // Populate year selector (current year down to 5 years back)
+      for (var y = currentYear; y >= currentYear - 5; y--) {
+        var opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        yearSelect.appendChild(opt);
+      }
+      yearSelect.value = currentYear;
+
+      function updateYearLabel() {
+        yearLabel.textContent = currentYear;
+        yearSelect.value = currentYear;
+      }
 
       function renderHeatmap(habitId) {
         if (cal) {
@@ -152,16 +196,21 @@
           container.innerHTML = '';
         }
 
-        const url = habitId
+        var url = habitId
           ? '/api/reports/heatmap?habit_id=' + encodeURIComponent(habitId)
           : '/api/reports/heatmap';
 
         fetch(url)
           .then(function(r) { return r.json(); })
           .then(function(result) {
-            const rawData = result.data || {};
-            // Convert {date: value} to [{date (timestamp), value}] for cal-heatmap v4
-            const data = Object.keys(rawData).map(function(d) {
+            var rawData = result.data || {};
+            allData = rawData;
+
+            var hasData = Object.keys(rawData).length > 0;
+            emptyMsg.style.display = hasData ? 'none' : '';
+
+            // Convert {date: value} to [{date (unix timestamp), value}] for cal-heatmap v4
+            var data = Object.keys(rawData).map(function(d) {
               return { date: new Date(d + 'T00:00:00').getTime() / 1000, value: rawData[d] };
             });
 
@@ -174,7 +223,7 @@
                 defaultValue: 0,
               },
               date: {
-                start: new Date(new Date().getFullYear(), 0, 1),
+                start: new Date(currentYear, 0, 1),
               },
               range: 12,
               domain: {
@@ -196,14 +245,31 @@
               },
               itemSelector: '#cal-heatmap',
             });
+
+            updateYearLabel();
           });
       }
+
+      prevBtn.addEventListener('click', function() {
+        currentYear--;
+        renderHeatmap(select.value);
+      });
+
+      nextBtn.addEventListener('click', function() {
+        currentYear++;
+        renderHeatmap(select.value);
+      });
+
+      yearSelect.addEventListener('change', function() {
+        currentYear = parseInt(this.value);
+        renderHeatmap(select.value);
+      });
 
       select.addEventListener('change', function() {
         renderHeatmap(this.value);
       });
 
-      // Initial render
+      updateYearLabel();
       renderHeatmap('');
     })();
     </script>
