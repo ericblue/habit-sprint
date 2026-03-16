@@ -208,17 +208,219 @@
     </script>
   </div>
   {% elif active_tab == 'category-balance' %}
-  <div class="report-placeholder">
+  <div class="report-section">
     <h2>Category Balance</h2>
-    <p>See how your effort is distributed across categories. Coming soon.</p>
-    <canvas id="category-balance-chart"></canvas>
+    <p>See how your effort is distributed across habit categories.</p>
+
+    <div style="margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+      <div>
+        <label for="cb-sprint-select"><strong>Sprint:</strong></label>
+        <select id="cb-sprint-select" style="margin-left: 0.5rem; padding: 0.3rem;">
+          <option value="">Current Sprint</option>
+          {% for s in sprints %}
+          <option value="{{ s.id }}">{{ s.theme or s.id }} ({{ s.start_date }} – {{ s.end_date }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="cb-compare-select"><strong>Compare with:</strong></label>
+        <select id="cb-compare-select" style="margin-left: 0.5rem; padding: 0.3rem;">
+          <option value="">None</option>
+          {% for s in sprints %}
+          <option value="{{ s.id }}">{{ s.theme or s.id }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div id="cb-loading">Loading category data…</div>
+    <div id="cb-empty" style="display:none;">
+      <p>No category data available for this sprint.</p>
+    </div>
+
+    <div style="max-width: 700px; margin: 1.5rem auto;">
+      <canvas id="category-balance-chart"></canvas>
+    </div>
   </div>
+
+  <script>
+  (function() {
+    const sprintSelect = document.getElementById('cb-sprint-select');
+    const compareSelect = document.getElementById('cb-compare-select');
+    let chartInstance = null;
+
+    function loadCategoryBalance() {
+      const sprintId = sprintSelect.value;
+      const compareId = compareSelect.value;
+      let url = '/api/reports/category-balance';
+      const params = [];
+      if (sprintId) params.push('sprint_id=' + encodeURIComponent(sprintId));
+      if (compareId) params.push('compare_sprint_id=' + encodeURIComponent(compareId));
+      if (params.length) url += '?' + params.join('&');
+
+      document.getElementById('cb-loading').style.display = '';
+      document.getElementById('cb-empty').style.display = 'none';
+
+      fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+          document.getElementById('cb-loading').style.display = 'none';
+          const data = result.data || result;
+          const cats = data.categories || [];
+          if (cats.length === 0) {
+            document.getElementById('cb-empty').style.display = '';
+            return;
+          }
+
+          const labels = cats.map(function(c) { return c.category; });
+          const scores = cats.map(function(c) { return c.weighted_score; });
+          const bgColors = scores.map(function(v) {
+            return v >= 80 ? '#4caf50' : v >= 50 ? '#ff9800' : '#f44336';
+          });
+
+          const datasets = [{
+            label: 'Weighted Score %',
+            data: scores,
+            backgroundColor: bgColors,
+            borderRadius: 4
+          }];
+
+          // Add comparison dataset if available
+          if (data.comparison && data.comparison.categories) {
+            const cmpCats = data.comparison.categories;
+            const cmpMap = {};
+            cmpCats.forEach(function(c) { cmpMap[c.category] = c.weighted_score; });
+            const cmpScores = labels.map(function(l) { return cmpMap[l] || 0; });
+            datasets.push({
+              label: 'Comparison Sprint %',
+              data: cmpScores,
+              backgroundColor: 'rgba(33, 150, 243, 0.5)',
+              borderColor: '#2196f3',
+              borderWidth: 1,
+              borderRadius: 4
+            });
+          }
+
+          if (chartInstance) chartInstance.destroy();
+
+          const ctx = document.getElementById('category-balance-chart').getContext('2d');
+          chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: datasets },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              scales: {
+                x: { beginAtZero: true, max: 100, title: { display: true, text: 'Score %' } }
+              },
+              plugins: {
+                legend: { display: datasets.length > 1 }
+              }
+            }
+          });
+        })
+        .catch(function() {
+          document.getElementById('cb-loading').textContent = 'Failed to load data.';
+        });
+    }
+
+    sprintSelect.addEventListener('change', loadCategoryBalance);
+    compareSelect.addEventListener('change', loadCategoryBalance);
+    loadCategoryBalance();
+  })();
+  </script>
+
   {% elif active_tab == 'trends' %}
-  <div class="report-placeholder">
-    <h2>Trends</h2>
-    <p>Track per-habit completion trends over time. Coming soon.</p>
-    <canvas id="trends-chart"></canvas>
+  <div class="report-section">
+    <h2>Daily Score Trend</h2>
+    <p>Track daily completion percentage within a sprint.</p>
+
+    <div style="margin-bottom: 1rem;">
+      <label for="trend-sprint-select"><strong>Sprint:</strong></label>
+      <select id="trend-sprint-select" style="margin-left: 0.5rem; padding: 0.3rem;">
+        <option value="">Current Sprint</option>
+        {% for s in sprints %}
+        <option value="{{ s.id }}">{{ s.theme or s.id }} ({{ s.start_date }} – {{ s.end_date }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="trend-loading">Loading trend data…</div>
+    <div id="trend-empty" style="display:none;">
+      <p>No score data available for this sprint.</p>
+    </div>
+
+    <div style="max-width: 700px; margin: 1.5rem auto;">
+      <canvas id="trends-chart"></canvas>
+    </div>
   </div>
+
+  <script>
+  (function() {
+    const select = document.getElementById('trend-sprint-select');
+    let chartInstance = null;
+
+    function loadTrend() {
+      const sprintId = select.value;
+      let url = '/api/reports/daily-scores';
+      if (sprintId) url += '?sprint_id=' + encodeURIComponent(sprintId);
+
+      document.getElementById('trend-loading').style.display = '';
+      document.getElementById('trend-empty').style.display = 'none';
+
+      fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+          document.getElementById('trend-loading').style.display = 'none';
+          const data = result.data || {};
+          const scores = data.scores || [];
+          if (scores.length === 0) {
+            document.getElementById('trend-empty').style.display = '';
+            return;
+          }
+
+          const labels = scores.map(function(s) { return s.date; });
+          const values = scores.map(function(s) { return s.completion_pct; });
+
+          if (chartInstance) chartInstance.destroy();
+
+          const ctx = document.getElementById('trends-chart').getContext('2d');
+          chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: 'Completion %',
+                data: values,
+                borderColor: '#2196f3',
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3,
+                pointBackgroundColor: '#2196f3'
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: { beginAtZero: true, max: 100, title: { display: true, text: 'Completion %' } },
+                x: { title: { display: true, text: 'Date' } }
+              },
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+        })
+        .catch(function() {
+          document.getElementById('trend-loading').textContent = 'Failed to load data.';
+        });
+    }
+
+    select.addEventListener('change', loadTrend);
+    loadTrend();
+  })();
+  </script>
   {% elif active_tab == 'streaks' %}
   <div class="report-section">
     <h2>Streak Leaderboard</h2>

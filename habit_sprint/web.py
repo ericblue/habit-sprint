@@ -853,11 +853,22 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             if result["status"] == "success":
                 habits = result["data"]["habits"]
 
+        # For category-balance and trends tabs, load sprint list for selector
+        sprints = []
+        if active_tab in ("category-balance", "trends"):
+            result = execute(
+                {"action": "list_sprints", "payload": {}},
+                request.app.state.db_path,
+            )
+            if result["status"] == "success":
+                sprints = result["data"]["sprints"]
+
         return templates.TemplateResponse("reports.html", {
             "request": request,
             "active_nav": "reports",
             "active_tab": active_tab,
             "habits": habits,
+            "sprints": sprints,
         })
 
     @app.get("/api/reports/sprint-comparison")
@@ -886,6 +897,87 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
 
         data = {row["date"]: row["total"] for row in rows}
         return JSONResponse({"status": "success", "data": data, "error": None})
+
+    @app.get("/api/reports/category-balance")
+    async def api_category_balance(
+        request: Request,
+        sprint_id: Optional[str] = None,
+        compare_sprint_id: Optional[str] = None,
+    ):
+        """Return category balance data for a sprint, optionally with comparison."""
+        db = request.app.state.db_path
+        payload: dict = {}
+        if sprint_id is not None:
+            payload["sprint_id"] = sprint_id
+        primary = execute({"action": "category_report", "payload": payload}, db)
+
+        if primary["status"] == "error":
+            error_msg = primary["error"].lower()
+            sc = 404 if ("not found" in error_msg or "no active sprint" in error_msg) else 500
+            return JSONResponse(primary, status_code=sc)
+
+        if compare_sprint_id:
+            cmp = execute(
+                {"action": "category_report", "payload": {"sprint_id": compare_sprint_id}}, db,
+            )
+            if cmp["status"] == "success":
+                primary["data"]["comparison"] = cmp["data"]
+
+        return JSONResponse(primary)
+
+    @app.get("/api/reports/daily-scores")
+    async def api_daily_scores(request: Request, sprint_id: Optional[str] = None):
+        """Return daily completion scores for every day in a sprint."""
+        from datetime import date as _date
+
+        db = request.app.state.db_path
+        conn = get_connection(db)
+
+        # Resolve sprint
+        if sprint_id:
+            row = conn.execute("SELECT * FROM sprints WHERE id = ?", (sprint_id,)).fetchone()
+            if row is None:
+                return JSONResponse({"status": "error", "data": None, "error": "Sprint not found"}, status_code=404)
+            sprint = dict(row)
+        else:
+            row = conn.execute(
+                "SELECT * FROM sprints WHERE status = 'active' ORDER BY start_date LIMIT 1"
+            ).fetchone()
+            if row is None:
+                return JSONResponse({"status": "error", "data": None, "error": "No active sprint"}, status_code=404)
+            sprint = dict(row)
+            sprint_id = sprint["id"]
+
+        start = _date.fromisoformat(sprint["start_date"])
+        end = _date.fromisoformat(sprint["end_date"])
+        today = _date.today()
+        if end > today:
+            end = today
+
+        scores = []
+        current = start
+        while current <= end:
+            try:
+                ds = execute(
+                    {"action": "daily_score", "payload": {"date": current.isoformat(), "sprint_id": sprint_id}},
+                    db,
+                )
+                pct = ds["data"]["completion_pct"] if ds["status"] == "success" else 0
+            except Exception:
+                pct = 0
+            scores.append({"date": current.isoformat(), "completion_pct": pct})
+            current += timedelta(days=1)
+
+        return JSONResponse({
+            "status": "success",
+            "data": {
+                "sprint_id": sprint_id,
+                "start_date": sprint["start_date"],
+                "end_date": sprint["end_date"],
+                "scores": scores,
+            },
+            "error": None,
+        })
 
     @app.post("/sprints/{sprint_id}/archive")
     async def archive_sprint(request: Request, sprint_id: str):
