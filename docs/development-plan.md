@@ -2,7 +2,7 @@
 
 > **Generated from:** docs/prd.md
 > **Created:** 2026-03-01
-> **Last synced:** 2026-03-11T21:21Z
+> **Last synced:** 2026-03-15T01:25Z
 > **Status:** Active Planning Document
 > **VibeKanban Project ID:** 9c59dcf5-0dc3-4305-855b-9b9432dd88c2
 
@@ -676,6 +676,7 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 | 9.5 | Category balance chart + weekly score trend | Category balance radar/bar chart and daily completion % line chart | Medium | M | 9.1 | <!-- vk:ERI-63 --> |
 | 9.6 | Habit trend line chart (per-habit across sprints) | Per-habit weekly completion % line chart across sprints | Medium | M | 9.1 | <!-- vk:ERI-64 --> |
 | 9.7 | Streak leaderboard + progress_summary CLI action | Streak ranking table and holistic `progress_summary` CLI action for LLM | Medium | M | 9.4 | <!-- vk:ERI-65 --> |
+| 9.8 | README refresh + screenshots | Update README to reflect web UI, reports, per-sprint goals, and current feature set; add screenshots of dashboard, reports, and habit detail pages | Medium | S | 9.7 | |
 
 ### Task Details
 
@@ -734,6 +735,16 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - [ ] Validation schema and markdown formatter for `progress_summary`
 - [ ] Tests for leaderboard and progress_summary
 
+**9.8 - README refresh + screenshots**
+- [ ] Update README intro to highlight both LLM-first and web UI approaches as dual interfaces
+- [ ] Add "Web Interface" section with description of the dashboard, habit management, sprint management, and reports pages
+- [ ] Capture and add screenshots: sprint dashboard, reports page (charts/heatmap), habits list, habit detail, sprint detail
+- [ ] Add screenshots to a `docs/screenshots/` directory
+- [ ] Update architecture diagram to show web UI alongside CLI/LLM flow
+- [ ] Document new features: per-sprint goal overrides, habit detail with streaks, delete habit, year/month sprint grouping
+- [ ] Update "Quick Start" section to include `habit-sprint serve` for launching the web UI
+- [ ] Review and update any outdated sections (dependencies, feature list, etc.)
+
 ---
 
 ## Dependencies
@@ -786,6 +797,7 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - **2026-03-01**: Work loop iteration 10 — completed tasks 3.8, 4.2, 4.3 (3 parallel, 1 merge conflict auto-resolved in formatters.py/cli.py/test_formatters.py, Epics 3 done)
 - **2026-03-01**: Autonomous work loop reached iteration cap (10). 23/26 tasks done. Remaining: 4.4 (CLI tests), 5.1, 5.2. All 663 tests passing.
 - **2026-03-01**: Completed remaining tasks 4.4, 5.1, 5.2 (4.4 + 5.1 parallel, then 5.2). All 26/26 tasks done. All 5 epics complete. 682 tests passing.
+- **2026-03-15**: Synced with VibeKanban — fixed Epic 7 (ERI-42) and Epic 8 (ERI-51) parent issues from "To do" → "Done" in VK. All Epics 1-8 confirmed complete. Epic 9 remains not started (0/7 tasks). Task 9.8 unlinked (no VK ID). ERI-50 orphaned (in VK, not in plan).
 - **2026-03-10**: Added Epic 6 (Web UI) — 9 tasks for lightweight web interface with FastAPI + htmx. Moved Web UI and HTTP API out of "Out of Scope".
 - **2026-03-10**: Synced with VibeKanban — created Epic 6 (ERI-32) and 9 tasks (ERI-33 through ERI-41). All Epics 1-5 confirmed Done. 26/35 tasks complete, 9 new tasks in To do.
 - **2026-03-11**: Autonomous work loop completed Epic 6 (Web UI) in 5 iterations. All 9/9 tasks done, 4 merge conflicts auto-resolved, 1 test fix. All 6 epics complete. 682 tests passing + 1 skipped (optional web dep).
