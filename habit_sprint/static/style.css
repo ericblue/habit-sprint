@@ -213,6 +213,11 @@ nav a.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
 .settings-table th { width: 200px; font-weight: 600; color: var(--text-muted); }
 .settings-table code { background: var(--bg-surface); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
 
+/* === Footer === */
+footer { text-align: center; padding: 1.5rem 1rem; margin-top: 2rem; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-light); }
+footer a { color: var(--text-muted); text-decoration: none; }
+footer a:hover { color: var(--accent); }
+
 /* === Tables === */
 table { width: 100%; border-collapse: collapse; background: var(--bg-surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border-light); }
