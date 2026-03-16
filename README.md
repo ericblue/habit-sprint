@@ -1,6 +1,6 @@
 # habit-sprint
 
-A deterministic, JSON-native sprint-based habit tracking engine with dual interfaces: an **LLM-first conversational workflow** for AI assistants and a **lightweight web dashboard** for visual tracking and reports.
+A deterministic, JSON-native sprint-based habit tracking engine with three interfaces: an **LLM-first conversational workflow** (CLI skill) for AI assistants, a **REST API** that powers the web layer, and a **lightweight web dashboard** for visual tracking and reports.
 
 ## Why habit-sprint?
 
@@ -138,7 +138,7 @@ graph TD
 
 **Key design principles:**
 
-- **Dual interface** — LLM-first conversational workflow and web dashboard share the same engine
+- **Three interfaces** — LLM-first conversational workflow (CLI), REST API (FastAPI), and web dashboard all share the same engine
 - **Deterministic** — The engine owns all arithmetic. The LLM never computes scores or streaks.
 - **JSON-contract driven** — Strict schemas for every action. No freeform input.
 - **SQLite-backed** — Zero-infra, portable, inspectable persistence
@@ -327,6 +327,12 @@ View all sprints grouped by year and month, with status badges and quick actions
 GitHub-style consistency heatmap showing daily check-in intensity with habit filtering and year navigation.
 
 ![Habit Heatmap](docs/screenshots/report_heatmap.png)
+
+### API (Swagger)
+
+The REST API (FastAPI) backs the web interface and is browsable via the built-in Swagger docs at `/docs`.
+
+![API Swagger](docs/screenshots/swagger-api.png)
 
 ### Settings
 
