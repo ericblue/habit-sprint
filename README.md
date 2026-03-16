@@ -310,17 +310,29 @@ See [SKILLS.md](SKILLS.md) for full action schemas and [COOKBOOK.md](COOKBOOK.md
 
 ## Screenshots
 
-Screenshots of the web interface are available in [`docs/screenshots/`](docs/screenshots/).
+### Sprint Dashboard
 
-| Screenshot | Description |
-|------------|-------------|
-| Sprint Dashboard | Interactive habit grid with daily toggles, scores, and weekly completion |
-| Habits List | All habits with category grouping, archive toggle, and quick actions |
-| Habit Detail | Individual habit page with streak history and entry log |
-| Sprint Detail | Sprint overview with habit grid, retro, and per-sprint goal overrides |
-| Reports — Sprint Comparison | Bar chart comparing weighted scores across sprints |
-| Reports — Habit Heatmap | GitHub-style consistency heatmap showing daily entries over time |
-| Reports — Streak Leaderboard | Table ranking habits by current and longest streaks |
+Interactive habit grid with one-click toggles, daily scores, and weekly completion tracking.
+
+![Sprint Dashboard](docs/screenshots/dashboard.png)
+
+### Sprints
+
+View all sprints grouped by year and month, with status badges and quick actions.
+
+![Sprints](docs/screenshots/sprints.png)
+
+### Reports — Habit Heatmap
+
+GitHub-style consistency heatmap showing daily check-in intensity with habit filtering and year navigation.
+
+![Habit Heatmap](docs/screenshots/report_heatmap.png)
+
+### Settings
+
+Database info, data summary, CSV export, and project details.
+
+![Settings](docs/screenshots/settings.png)
 
 ## Testing
 
@@ -328,7 +340,7 @@ Screenshots of the web interface are available in [`docs/screenshots/`](docs/scr
 make test
 ```
 
-Runs 859 tests covering the engine, CLI, web routes, reporting, validation, and error handling.
+Runs 889 tests covering the engine, CLI, web routes, reporting, validation, and error handling.
 
 ## Project Structure
 
@@ -349,7 +361,7 @@ habit-sprint/
   migrations/
     001_initial_schema.sql
     002_sprint_habit_goals.sql
-  tests/            # 859 tests
+  tests/            # 889 tests
   docs/
     prd.md          # Product requirements document
     screenshots/    # Web UI screenshots
@@ -402,7 +414,7 @@ The core design principles from that original spreadsheet carried forward into t
 - Year/month sprint grouping in sprint list
 - Entry notes support
 - 27 JSON actions (up from 22)
-- 859 tests (up from 682)
+- 889 tests (up from 682)
 
 ### v0.1.0 — Initial Release
 
