@@ -960,6 +960,7 @@ def cross_sprint_report(conn: sqlite3.Connection, payload: dict) -> dict:
             "status": sprint["status"],
             "weighted_score": weighted_score,
             "unweighted_score": unweighted_score,
+            "habit_count": len(habit_completions),
             "category_scores": category_scores,
             "habit_completions": habit_completions,
             "trend_delta": trend_delta,

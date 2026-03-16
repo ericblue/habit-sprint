@@ -689,12 +689,12 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - [x] Tests for route returning 200
 
 **9.2 - Sprint comparison report (table + bar chart)**
-- [ ] GET `/reports/sprints` (or tab within `/reports`) renders sprint comparison
-- [ ] Table: sprint name/theme, dates, weighted score %, unweighted score %, habit count, trend arrow
-- [ ] Chart.js bar chart showing weighted score % per sprint (chronological)
-- [ ] Color coding: green >= 80%, yellow >= 50%, red < 50%
-- [ ] API endpoint `GET /api/reports/sprint-comparison` returning JSON
-- [ ] Tests for route and API endpoint
+- [x] GET `/reports/sprints` (or tab within `/reports`) renders sprint comparison
+- [x] Table: sprint name/theme, dates, weighted score %, unweighted score %, habit count, trend arrow
+- [x] Chart.js bar chart showing weighted score % per sprint (chronological)
+- [x] Color coding: green >= 80%, yellow >= 50%, red < 50%
+- [x] API endpoint `GET /api/reports/sprint-comparison` returning JSON
+- [x] Tests for route and API endpoint
 
 **9.3 - Habit consistency heatmap (GitHub-style calendar)**
 - [ ] GET `/reports/heatmap` (or tab within `/reports`) renders heatmap view

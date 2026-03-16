@@ -960,3 +960,97 @@ class TestReportsPage:
         resp = client.get("/reports?tab=heatmap")
         assert resp.status_code == 200
         assert "cal-heatmap" in resp.text
+
+
+class TestSprintComparisonReport:
+    """Test sprint comparison report — API + HTML (task 9.2)."""
+
+    def test_api_returns_200_empty(self, client):
+        """API returns 200 with empty sprints list when no sprints exist."""
+        resp = client.get("/api/reports/sprint-comparison")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "success"
+        assert body["data"]["sprints"] == []
+
+    def test_api_returns_sprint_data(self, seeded_client):
+        """API returns sprint comparison data with scores and habit_count."""
+        # Log some entries so scores are non-zero
+        seeded_client.post("/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-05", "value": 1,
+        })
+        resp = seeded_client.get("/api/reports/sprint-comparison")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "success"
+        sprints = body["data"]["sprints"]
+        assert len(sprints) >= 1
+        s = sprints[0]
+        assert "weighted_score" in s
+        assert "unweighted_score" in s
+        assert "habit_count" in s
+        assert "trend_delta" in s
+        assert isinstance(s["habit_count"], int)
+
+    def test_api_color_thresholds(self, seeded_db):
+        """Verify weighted_score values allow client-side color coding."""
+        db_path, app = seeded_db
+        client = TestClient(app)
+        # Log enough entries to get a measurable score
+        for day in range(2, 14):
+            d = f"2026-03-{day:02d}"
+            execute({"action": "log_date", "payload": {
+                "habit_id": "exercise", "date": d, "value": 1,
+            }}, db_path)
+        resp = client.get("/api/reports/sprint-comparison")
+        sprints = resp.json()["data"]["sprints"]
+        assert len(sprints) >= 1
+        ws = sprints[0]["weighted_score"]
+        # Score should be a number between 0 and 100
+        assert 0 <= ws <= 100
+
+    def test_reports_page_has_comparison_table(self, client):
+        """Sprint comparison tab includes the table and chart elements."""
+        resp = client.get("/reports?tab=sprint-comparison")
+        assert resp.status_code == 200
+        assert "sprint-comparison-table" in resp.text
+        assert "sprint-comparison-chart" in resp.text
+
+    def test_reports_page_fetches_api(self, client):
+        """Sprint comparison tab includes JS fetch to the API endpoint."""
+        resp = client.get("/reports?tab=sprint-comparison")
+        assert resp.status_code == 200
+        assert "/api/reports/sprint-comparison" in resp.text
+
+    def test_api_multiple_sprints_trend(self, tmp_path):
+        """With multiple sprints, trend_delta is computed between consecutive sprints."""
+        db_path = str(tmp_path / "multi.db")
+        app = create_app(db_path=db_path)
+        client = TestClient(app)
+
+        # Create first sprint and archive it
+        execute({"action": "create_sprint", "payload": {
+            "id": "s1", "start_date": "2026-02-02", "end_date": "2026-02-15",
+        }}, db_path)
+        execute({"action": "create_habit", "payload": {
+            "id": "h1", "name": "H1", "category": "cat", "target_per_week": 7,
+        }}, db_path)
+        for day in range(2, 9):
+            execute({"action": "log_date", "payload": {
+                "habit_id": "h1", "date": f"2026-02-{day:02d}", "value": 1,
+            }}, db_path)
+        execute({"action": "archive_sprint", "payload": {"sprint_id": "s1"}}, db_path)
+
+        # Create second sprint
+        execute({"action": "create_sprint", "payload": {
+            "id": "s2", "start_date": "2026-03-02", "end_date": "2026-03-15",
+        }}, db_path)
+
+        resp = client.get("/api/reports/sprint-comparison")
+        assert resp.status_code == 200
+        sprints = resp.json()["data"]["sprints"]
+        assert len(sprints) == 2
+        # First sprint has no trend_delta
+        assert sprints[0]["trend_delta"] is None
+        # Second sprint has a trend_delta (diff from first)
+        assert sprints[1]["trend_delta"] is not None

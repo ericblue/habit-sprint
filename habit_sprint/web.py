@@ -834,6 +834,11 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             "active_tab": active_tab,
         })
 
+    @app.get("/api/reports/sprint-comparison")
+    async def api_sprint_comparison(request: Request):
+        """Return sprint comparison data as JSON."""
+        return _execute_action(request.app.state.db_path, "cross_sprint_report")
+
     @app.post("/sprints/{sprint_id}/archive")
     async def archive_sprint(request: Request, sprint_id: str):
         execute({"action": "archive_sprint", "payload": {"sprint_id": sprint_id}}, request.app.state.db_path)

@@ -21,11 +21,109 @@
 
 <div class="report-content">
   {% if active_tab == 'sprint-comparison' %}
-  <div class="report-placeholder">
+  <div id="sprint-comparison">
     <h2>Sprint Comparison</h2>
-    <p>Compare weighted scores across sprints. Coming soon.</p>
-    <canvas id="sprint-comparison-chart"></canvas>
+    <p>Compare weighted scores across sprints.</p>
+
+    <div id="sprint-comparison-loading">Loading sprint data…</div>
+    <div id="sprint-comparison-empty" style="display:none;">
+      <p>No sprints found. Create a sprint to see comparison data.</p>
+    </div>
+
+    <table id="sprint-comparison-table" class="sprint-table" style="display:none;">
+      <thead>
+        <tr>
+          <th>Sprint</th>
+          <th>Dates</th>
+          <th>Weighted %</th>
+          <th>Unweighted %</th>
+          <th>Habits</th>
+          <th>Trend</th>
+        </tr>
+      </thead>
+      <tbody id="sprint-comparison-tbody"></tbody>
+    </table>
+
+    <div style="max-width: 700px; margin: 1.5rem auto;">
+      <canvas id="sprint-comparison-chart"></canvas>
+    </div>
   </div>
+
+  <script>
+  (function() {
+    fetch('/api/reports/sprint-comparison')
+      .then(r => r.json())
+      .then(result => {
+        const loading = document.getElementById('sprint-comparison-loading');
+        loading.style.display = 'none';
+
+        const sprints = (result.data || result).sprints || [];
+        if (sprints.length === 0) {
+          document.getElementById('sprint-comparison-empty').style.display = '';
+          return;
+        }
+
+        // Populate table
+        const tbody = document.getElementById('sprint-comparison-tbody');
+        const table = document.getElementById('sprint-comparison-table');
+        table.style.display = '';
+
+        sprints.forEach(s => {
+          const tr = document.createElement('tr');
+          const ws = s.weighted_score;
+          const colorClass = ws >= 80 ? 'score-green' : ws >= 50 ? 'score-yellow' : 'score-red';
+
+          let trendArrow = '—';
+          if (s.trend_delta !== null && s.trend_delta !== undefined) {
+            if (s.trend_delta > 0) trendArrow = '▲ +' + s.trend_delta;
+            else if (s.trend_delta < 0) trendArrow = '▼ ' + s.trend_delta;
+            else trendArrow = '→ 0';
+          }
+
+          const label = s.theme || s.sprint_id;
+          tr.innerHTML =
+            '<td>' + label + '</td>' +
+            '<td>' + s.start_date + ' → ' + s.end_date + '</td>' +
+            '<td class="' + colorClass + '">' + ws + '%</td>' +
+            '<td>' + s.unweighted_score + '%</td>' +
+            '<td>' + (s.habit_count !== undefined ? s.habit_count : '—') + '</td>' +
+            '<td>' + trendArrow + '</td>';
+          tbody.appendChild(tr);
+        });
+
+        // Chart
+        const ctx = document.getElementById('sprint-comparison-chart').getContext('2d');
+        const labels = sprints.map(s => s.theme || s.sprint_id);
+        const scores = sprints.map(s => s.weighted_score);
+        const bgColors = scores.map(v => v >= 80 ? '#4caf50' : v >= 50 ? '#ff9800' : '#f44336');
+
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Weighted Score %',
+              data: scores,
+              backgroundColor: bgColors,
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { beginAtZero: true, max: 100, title: { display: true, text: 'Score %' } }
+            },
+            plugins: {
+              legend: { display: false }
+            }
+          }
+        });
+      })
+      .catch(() => {
+        document.getElementById('sprint-comparison-loading').textContent = 'Failed to load data.';
+      });
+  })();
+  </script>
   {% elif active_tab == 'heatmap' %}
   <div class="report-placeholder">
     <h2>Habit Heatmap</h2>

@@ -551,3 +551,25 @@ table.sprint-grid .toggle-cell { position: relative; }
   max-width: 800px;
   margin: 1.5rem auto 0;
 }
+
+/* === Sprint Comparison Table === */
+.sprint-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+}
+.sprint-table th,
+.sprint-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-color, #dee2e6);
+  text-align: left;
+}
+.sprint-table th {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--text-secondary, #6c757d);
+}
+.score-green { color: #2e7d32; font-weight: 600; }
+.score-yellow { color: #e65100; font-weight: 600; }
+.score-red { color: #c62828; font-weight: 600; }
