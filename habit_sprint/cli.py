@@ -68,9 +68,16 @@ def main() -> int:
         if db_dir:
             os.makedirs(db_dir, exist_ok=True)
 
-        app = create_app(db_path=args.db)
+        # Set db_path as env var so the app factory can pick it up on reload
+        os.environ["HABIT_SPRINT_DB"] = args.db
         print(f"Starting Habit Sprint web UI at http://{args.host}:{args.port}")
-        uvicorn.run(app, host=args.host, port=args.port)
+        uvicorn.run(
+            "habit_sprint.web:app",
+            host=args.host,
+            port=args.port,
+            reload=True,
+            reload_dirs=[os.path.dirname(os.path.abspath(__file__))],
+        )
         return 0
 
     # Determine JSON input source (--json flag takes priority over stdin)

@@ -32,12 +32,15 @@
   </div>
 </div>
 
-{# Week toggle #}
+{# Week toggle — only show weeks that exist #}
+{% if num_weeks is defined and num_weeks > 1 %}
 <div class="week-toggle">
-  <a href="/?week=1" class="{% if week == 1 %}active{% endif %}">Week 1</a>
-  <a href="/?week=2" class="{% if week == 2 %}active{% endif %}">Week 2</a>
-  <a href="/" class="{% if week is none %}active{% endif %}">All</a>
+  {% for w in range(1, num_weeks + 1) %}
+  <a href="/?week={{ w }}{% if data.sprint.id %}&sprint_id={{ data.sprint.id }}{% endif %}" class="{% if week == w %}active{% endif %}">Week {{ w }}</a>
+  {% endfor %}
+  <a href="/{% if data.sprint.id %}?sprint_id={{ data.sprint.id }}{% endif %}" class="{% if week is none %}active{% endif %}">All</a>
 </div>
+{% endif %}
 
 {# Sprint grid #}
 <div class="grid-container">
@@ -79,10 +82,16 @@
         <span class="note-icon" onclick="openNote('{{ habit.habit_id }}', '{{ ds }}', this.parentElement)" title="Add/view note">&#9998;</span>
       </td>
       {% endfor %}
-      {% set pct = ((habit.week_actual / habit.target_per_week * 100) if habit.target_per_week > 0 else 0)|int %}
+      {% if week is none %}
+        {% set num_wks = (dates|length / 7)|round(0, 'ceil')|int %}
+      {% else %}
+        {% set num_wks = 1 %}
+      {% endif %}
+      {% set target_total = habit.target_per_week * num_wks %}
+      {% set pct = ((habit.week_actual / target_total * 100) if target_total > 0 else 0)|int %}
       {% set pct = [pct, 100]|min %}
-      <td class="pct-cell">
-        {{ habit.week_actual }}/{{ habit.target_per_week }}{% if week is none %}x{{ (dates|length / 7)|round(0, 'ceil')|int }}{% endif %}
+      <td id="done-{{ habit.habit_id }}" class="pct-cell">
+        <span class="has-tooltip">{{ habit.week_actual }}/{{ target_total }}<span class="tooltip">{{ habit.week_actual }} done / {{ habit.target_per_week }}/wk{% if num_wks > 1 %} &times; {{ num_wks }} wks{% endif %}</span></span>
         <div class="progress progress-sm progress-inline">
           <div class="progress-bar{% if pct >= 80 %} progress-bar-success{% elif pct >= 50 %} progress-bar-warning{% else %} progress-bar-danger{% endif %}" style="width: {{ pct }}%"></div>
         </div>

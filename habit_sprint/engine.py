@@ -279,6 +279,22 @@ def unarchive_habit(conn: sqlite3.Connection, payload: dict) -> dict:
     return dict(row)
 
 
+def delete_habit(conn: sqlite3.Connection, payload: dict) -> dict:
+    """Permanently delete a habit and all its entries, notes, and sprint goals."""
+    habit_id = payload["id"]
+    row = conn.execute("SELECT * FROM habits WHERE id = ?", (habit_id,)).fetchone()
+    if row is None:
+        raise ValueError(f"Habit not found: {habit_id}")
+    habit = dict(row)
+
+    conn.execute("DELETE FROM entries WHERE habit_id = ?", (habit_id,))
+    conn.execute("DELETE FROM sprint_habit_goals WHERE habit_id = ?", (habit_id,))
+    conn.execute("DELETE FROM habits WHERE id = ?", (habit_id,))
+    conn.commit()
+
+    return habit
+
+
 def list_habits(conn: sqlite3.Connection, payload: dict) -> dict:
     sprint_id = payload.get("sprint_id")
     category = payload.get("category")

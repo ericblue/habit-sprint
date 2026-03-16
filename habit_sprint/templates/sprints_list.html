@@ -10,9 +10,23 @@
 <div class="flash-error">{{ error }}</div>
 {% endif %}
 
-{% if sprints %}
-<div class="card-list">
-    {% for s in sprints %}
+{% if years %}
+{# Year filter tabs #}
+<div class="week-toggle" style="margin-bottom: 1.5rem;">
+  <a href="/sprints" class="{% if not selected_year %}active{% endif %}">All</a>
+  {% for y in years %}
+  <a href="/sprints?year={{ y }}" class="{% if selected_year == y %}active{% endif %}">{{ y }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if grouped %}
+  {% for ym, month_sprints in grouped.items() %}
+  <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text-secondary, #6c757d); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em;">
+    {{ ym }}
+  </h3>
+  <div class="card-list">
+    {% for s in month_sprints %}
     <div class="card">
       <div class="card-header">
         <div>
@@ -38,8 +52,9 @@
       </div>
     </div>
     {% endfor %}
-</div>
+  </div>
+  {% endfor %}
 {% else %}
-<p>No sprints yet.</p>
+<p>No sprints{% if selected_year %} in {{ selected_year }}{% endif %}.</p>
 {% endif %}
 {% endblock %}

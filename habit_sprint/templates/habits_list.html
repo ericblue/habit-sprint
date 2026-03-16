@@ -3,16 +3,24 @@
 {% block content %}
 <div class="page-header">
   <h1>Habits</h1>
-  <a href="/habits/new" class="btn btn-primary">+ New Habit</a>
+  <div>
+    {% if archived_count %}
+    <a href="{{ '/habits' if show_archived else '/habits?show_archived=1' }}" class="btn btn-sm btn-outline">
+      {{ 'Hide' if show_archived else 'Show' }} Archived ({{ archived_count }})
+    </a>
+    {% endif %}
+    <a href="/habits/new" class="btn btn-primary">+ New Habit</a>
+  </div>
 </div>
 
 {% if habits %}
 <div class="card-list">
     {% for habit in habits %}
+    {% if not habit.archived or show_archived %}
     <div class="card{% if habit.archived %} archived{% endif %}">
       <div class="card-header">
         <div>
-          <div class="card-title">{{ habit.name }}</div>
+          <div class="card-title"><a href="/habits/{{ habit.id }}">{{ habit.name }}</a></div>
           <code>{{ habit.id }}</code>
         </div>
         <div class="card-actions">
@@ -27,6 +35,9 @@
               <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('Restore this habit?')">Restore</button>
           </form>
           {% endif %}
+          <form method="post" action="/habits/{{ habit.id }}/delete" class="inline">
+              <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Permanently delete \'{{ habit.name }}\'{% if habit.entry_count %} and its {{ habit.entry_count }} entr{{ 'y' if habit.entry_count == 1 else 'ies' }}{% endif %}? This cannot be undone.')">Delete</button>
+          </form>
         </div>
       </div>
       <div class="card-meta">
@@ -34,9 +45,10 @@
         <span>Target: <strong>{{ habit.target_per_week }}/week</strong></span>
         <span>Weight: <strong>{{ habit.weight }}</strong></span>
         <span>Unit: <strong>{{ habit.unit }}</strong></span>
-        <span>Scope: <strong>{{ habit.sprint_id if habit.sprint_id else "Global" }}</strong></span>
+        <span>Scope: <strong>{% if habit.sprint_id %}{{ habit.sprint_id }}{% elif habit.sprint_count %}{{ habit.sprint_count }} sprint{{ 's' if habit.sprint_count != 1 else '' }}{% else %}Global{% endif %}</strong></span>
       </div>
     </div>
+    {% endif %}
     {% endfor %}
 </div>
 {% else %}

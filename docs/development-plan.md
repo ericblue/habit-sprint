@@ -2,7 +2,7 @@
 
 > **Generated from:** docs/prd.md
 > **Created:** 2026-03-01
-> **Last synced:** 2026-03-11
+> **Last synced:** 2026-03-11T21:21Z
 > **Status:** Active Planning Document
 > **VibeKanban Project ID:** 9c59dcf5-0dc3-4305-855b-9b9432dd88c2
 
@@ -47,6 +47,7 @@ Habit Sprint is a deterministic, JSON-native sprint-based habit tracking engine 
 | 6. Web UI | Done | 100% |
 | 7. Web UI Polish & Sprint Habit Management | Done | 100% |
 | 8. Habit Consolidation & Per-Sprint Goals | Done | 100% |
+| 9. Reports & Analytics | Not Started | 0% |
 
 ---
 
@@ -649,6 +650,92 @@ CREATE TABLE sprint_habit_goals (
 
 ---
 
+## Epic 9: Reports & Analytics (NOT STARTED)
+
+Add a dedicated reports feature with static and dynamic reports for the web UI, plus more sophisticated cross-sprint reporting for the CLI/LLM interface. Includes lightweight charts using Chart.js and cal-heatmap.
+
+### Acceptance Criteria
+
+- [ ] `/reports` page with tab navigation between report types
+- [ ] Sprint comparison table with bar chart showing weighted scores across all sprints
+- [ ] GitHub-style habit consistency heatmap for any habit or all habits combined
+- [ ] `cross_sprint_report` CLI action comparing metrics across sprints
+- [ ] Category balance chart and weekly score trend line chart
+- [ ] Per-habit trend line chart across sprints
+- [ ] Streak leaderboard and `progress_summary` CLI action for LLM
+- [ ] All new reports have passing tests
+
+### Tasks
+
+| ID | Title | Description | Priority | Complexity | Depends On | Status |
+|----|-------|-------------|----------|------------|------------|--------|
+| 9.1 | Reports page layout + Chart.js/cal-heatmap integration | Create `/reports` route, base template with tab nav, load Chart.js + cal-heatmap via CDN | High | M | 6.7 | <!-- vk:ERI-59 --> |
+| 9.2 | Sprint comparison report (table + bar chart) | Sprint comparison view with table and Chart.js bar chart of weighted scores | High | L | 9.1 | <!-- vk:ERI-60 --> |
+| 9.3 | Habit consistency heatmap (GitHub-style calendar) | GitHub-style contribution heatmap for daily check-ins using cal-heatmap | High | L | 9.1 | <!-- vk:ERI-61 --> |
+| 9.4 | cross_sprint_report CLI action + formatter | New engine action comparing metrics across sprints, with markdown formatter | High | L | — | <!-- vk:ERI-62 --> |
+| 9.5 | Category balance chart + weekly score trend | Category balance radar/bar chart and daily completion % line chart | Medium | M | 9.1 | <!-- vk:ERI-63 --> |
+| 9.6 | Habit trend line chart (per-habit across sprints) | Per-habit weekly completion % line chart across sprints | Medium | M | 9.1 | <!-- vk:ERI-64 --> |
+| 9.7 | Streak leaderboard + progress_summary CLI action | Streak ranking table and holistic `progress_summary` CLI action for LLM | Medium | M | 9.4 | <!-- vk:ERI-65 --> |
+
+### Task Details
+
+**9.1 - Reports page layout + Chart.js/cal-heatmap integration**
+- [ ] GET `/reports` route returns reports page
+- [ ] Base reports template with tab navigation (Sprint Comparison, Habit Heatmap, Category Balance, Trends, Streaks)
+- [ ] Chart.js loaded via CDN (only on reports page)
+- [ ] cal-heatmap loaded via CDN for heatmap view
+- [ ] Navigation bar highlights "Reports" as active
+- [ ] Tests for route returning 200
+
+**9.2 - Sprint comparison report (table + bar chart)**
+- [ ] GET `/reports/sprints` (or tab within `/reports`) renders sprint comparison
+- [ ] Table: sprint name/theme, dates, weighted score %, unweighted score %, habit count, trend arrow
+- [ ] Chart.js bar chart showing weighted score % per sprint (chronological)
+- [ ] Color coding: green >= 80%, yellow >= 50%, red < 50%
+- [ ] API endpoint `GET /api/reports/sprint-comparison` returning JSON
+- [ ] Tests for route and API endpoint
+
+**9.3 - Habit consistency heatmap (GitHub-style calendar)**
+- [ ] GET `/reports/heatmap` (or tab within `/reports`) renders heatmap view
+- [ ] Dropdown to select specific habit or "All Habits"
+- [ ] cal-heatmap renders full-year calendar grid colored by check-in intensity
+- [ ] API endpoint `GET /api/reports/heatmap?habit_id=X` returning date→value mapping
+- [ ] Tests for API endpoint
+
+**9.4 - cross_sprint_report CLI action + formatter**
+- [ ] New `cross_sprint_report` action in executor (query action)
+- [ ] Payload: optional `limit`, optional `habit_id`
+- [ ] Returns: array of sprint summaries with weighted/unweighted scores, per-category scores, trend deltas
+- [ ] Includes overall trend assessment (improving/declining/stable)
+- [ ] Validation schema in validation.py
+- [ ] Markdown formatter in formatters.py
+- [ ] Unit tests with multiple sprints
+
+**9.5 - Category balance chart + weekly score trend**
+- [ ] Category balance chart (radar or horizontal bar) for current sprint
+- [ ] Option to overlay previous sprint for comparison
+- [ ] Weekly score trend: line chart of daily completion % within a sprint
+- [ ] Sprint selector dropdown
+- [ ] API endpoints for category balance and daily scores
+- [ ] Tests for API endpoints
+
+**9.6 - Habit trend line chart (per-habit across sprints)**
+- [ ] Habit trend view with habit dropdown
+- [ ] Chart.js line chart of weekly completion % over time
+- [ ] Sprint boundaries marked with vertical lines or shading
+- [ ] Rolling average overlay
+- [ ] API endpoint `GET /api/reports/habit-trend?habit_id=X`
+- [ ] Tests for API endpoint
+
+**9.7 - Streak leaderboard + progress_summary CLI action**
+- [ ] Streak leaderboard table: habit name, current streak, longest streak, total check-ins
+- [ ] Visual streak indicators
+- [ ] New `progress_summary` CLI action: overall trend, top/bottom habits, category balance, active streaks
+- [ ] Validation schema and markdown formatter for `progress_summary`
+- [ ] Tests for leaderboard and progress_summary
+
+---
+
 ## Dependencies
 
 - Python 3.12+
@@ -706,3 +793,5 @@ CREATE TABLE sprint_habit_goals (
 - **2026-03-10**: Autonomous work loop completed Epic 7 in 3 iterations. All 7/7 tasks done, 3 merge conflicts auto-resolved, 1 validation bug fix. All 7 epics complete. 757 tests passing.
 - **2026-03-11**: Added Epic 8 (Habit Consolidation & Per-Sprint Goals) — 6 tasks for sprint_habit_goals junction table, reporting updates, historical data migration, and web UI goal editing. Created VK epic ERI-51 and tasks ERI-52 through ERI-57.
 - **2026-03-11**: Autonomous work loop completed Epic 8 in 4 iterations. All 6/6 tasks done, 0 merge conflicts, 0 test fixes. All 8 epics complete. 798 tests passing.
+- **2026-03-11**: Added Epic 9 (Reports & Analytics) — 7 tasks for reports page with Chart.js/cal-heatmap, sprint comparison, habit heatmap, cross-sprint CLI report, category balance, habit trends, streak leaderboard. Created VK epic ERI-58 and tasks ERI-59 through ERI-65.
+- **2026-03-11**: Synced with VibeKanban — Epics 1-8 confirmed Done. Epic 9 added (0/7 tasks). 45/52 total tasks complete.

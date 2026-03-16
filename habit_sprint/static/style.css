@@ -1,5 +1,39 @@
 /* Habit Sprint — clean, minimal design */
 
+/* === Tooltips === */
+.has-tooltip {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dotted var(--text-secondary, #6c757d);
+}
+.has-tooltip .tooltip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-primary, #1a1a2e);
+  color: #fff;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 10;
+  margin-bottom: 4px;
+}
+.has-tooltip .tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--text-primary, #1a1a2e);
+}
+.has-tooltip:hover .tooltip {
+  display: block;
+}
+
 /* === Color Palette (CSS Custom Properties) === */
 :root {
   --bg: #f6f7f9;

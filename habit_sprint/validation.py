@@ -115,6 +115,9 @@ ACTION_SCHEMAS = {
     "unarchive_habit": {
         "id": {"type": "str", "required": True},
     },
+    "delete_habit": {
+        "id": {"type": "str", "required": True},
+    },
     "list_habits": {
         "sprint_id": {"type": "str", "required": False},
         "category": {"type": "str", "required": False},

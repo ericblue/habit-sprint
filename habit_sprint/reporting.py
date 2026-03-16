@@ -83,6 +83,61 @@ def _get_effective_goals(
     return result
 
 
+def _get_sprint_habits(conn: sqlite3.Connection, sprint_id: str) -> list:
+    """Get habits for a sprint.
+
+    For active sprints: sprint_habit_goals rows + sprint-scoped + global unarchived habits.
+    For archived sprints with sprint_habit_goals: only those bound habits + sprint-scoped.
+    For archived sprints without sprint_habit_goals: fall back to globals (legacy behavior).
+    """
+    # Check sprint status and whether it has any sprint_habit_goals
+    row = conn.execute(
+        "SELECT status FROM sprints WHERE id = ?", (sprint_id,)
+    ).fetchone()
+    is_active = row and row["status"] == "active"
+
+    has_goals = conn.execute(
+        "SELECT 1 FROM sprint_habit_goals WHERE sprint_id = ? LIMIT 1", (sprint_id,)
+    ).fetchone() is not None
+
+    if is_active:
+        # Active sprint: include sprint_habit_goals + sprint-scoped + globals, but never archived
+        return conn.execute(
+            """SELECT DISTINCT h.* FROM habits h
+               LEFT JOIN sprint_habit_goals shg
+                 ON shg.habit_id = h.id AND shg.sprint_id = ?
+               WHERE h.archived = 0
+                 AND (shg.sprint_id IS NOT NULL
+                      OR h.sprint_id = ?
+                      OR h.sprint_id IS NULL)
+               ORDER BY h.category, h.created_at""",
+            (sprint_id, sprint_id),
+        ).fetchall()
+    elif not has_goals:
+        # Archived without explicit goals: fall back to globals (legacy)
+        return conn.execute(
+            """SELECT DISTINCT h.* FROM habits h
+               LEFT JOIN sprint_habit_goals shg
+                 ON shg.habit_id = h.id AND shg.sprint_id = ?
+               WHERE shg.sprint_id IS NOT NULL
+                  OR (h.archived = 0 AND h.sprint_id = ?)
+                  OR (h.archived = 0 AND h.sprint_id IS NULL)
+               ORDER BY h.category, h.created_at""",
+            (sprint_id, sprint_id),
+        ).fetchall()
+    else:
+        # Archived with explicit sprint_habit_goals: only bound habits
+        return conn.execute(
+            """SELECT DISTINCT h.* FROM habits h
+               LEFT JOIN sprint_habit_goals shg
+                 ON shg.habit_id = h.id AND shg.sprint_id = ?
+               WHERE shg.sprint_id IS NOT NULL
+                  OR (h.archived = 0 AND h.sprint_id = ?)
+               ORDER BY h.category, h.created_at""",
+            (sprint_id, sprint_id),
+        ).fetchall()
+
+
 def weekly_completion(conn: sqlite3.Connection, payload: dict) -> dict:
     habit_id = payload["habit_id"]
     sprint_id = payload.get("sprint_id")
@@ -156,14 +211,8 @@ def daily_score(conn: sqlite3.Connection, payload: dict) -> dict:
         sprint = dict(row)
         sprint_id = sprint["id"]
 
-    # Get all non-archived habits for this sprint (sprint-scoped + global)
-    habits = conn.execute(
-        """SELECT * FROM habits
-           WHERE archived = 0
-             AND (sprint_id = ? OR sprint_id IS NULL)
-           ORDER BY created_at""",
-        (sprint_id,),
-    ).fetchall()
+    # Get habits for this sprint (sprint_habit_goals rows + non-archived globals)
+    habits = _get_sprint_habits(conn, sprint_id)
     habits = _get_effective_goals(conn, sprint_id, habits)
 
     habits_completed = []
@@ -250,14 +299,8 @@ def get_week_view(conn: sqlite3.Connection, payload: dict) -> dict:
     # Determine which days are inside the sprint range
     in_sprint = [sprint_start <= d <= sprint_end for d in week_dates]
 
-    # Get all non-archived habits for this sprint
-    habits = conn.execute(
-        """SELECT * FROM habits
-           WHERE archived = 0
-             AND (sprint_id = ? OR sprint_id IS NULL)
-           ORDER BY category, created_at""",
-        (sprint_id,),
-    ).fetchall()
+    # Get habits for this sprint (sprint_habit_goals rows + non-archived globals)
+    habits = _get_sprint_habits(conn, sprint_id)
     habits = _get_effective_goals(conn, sprint_id, habits)
 
     # Fetch all entries for these habits in the week range
@@ -358,14 +401,8 @@ def sprint_report(conn: sqlite3.Connection, payload: dict) -> dict:
         days_elapsed = (today - start).days + 1
         days_remaining = (end - today).days
 
-    # All non-archived habits for this sprint (sprint-scoped + global)
-    habits = conn.execute(
-        """SELECT * FROM habits
-           WHERE archived = 0
-             AND (sprint_id = ? OR sprint_id IS NULL)
-           ORDER BY created_at""",
-        (sprint_id,),
-    ).fetchall()
+    # Get habits for this sprint (sprint_habit_goals rows + non-archived globals)
+    habits = _get_sprint_habits(conn, sprint_id)
     habits = _get_effective_goals(conn, sprint_id, habits)
 
     # Compute week boundaries within the sprint
@@ -468,12 +505,7 @@ def sprint_report(conn: sqlite3.Connection, payload: dict) -> dict:
         prev_end = date.fromisoformat(prev["end_date"])
         prev_num_weeks = math.ceil(((prev_end - prev_start).days + 1) / 7)
 
-        prev_habits = conn.execute(
-            """SELECT * FROM habits
-               WHERE sprint_id = ? OR sprint_id IS NULL
-               ORDER BY created_at""",
-            (prev["id"],),
-        ).fetchall()
+        prev_habits = _get_sprint_habits(conn, prev["id"])
         prev_habits = _get_effective_goals(conn, prev["id"], prev_habits)
 
         prev_wa = 0
@@ -714,14 +746,8 @@ def category_report(conn: sqlite3.Connection, payload: dict) -> dict:
     total_days = (end - start).days + 1
     num_weeks = math.ceil(total_days / 7)
 
-    # All non-archived habits for this sprint (sprint-scoped + global)
-    habits = conn.execute(
-        """SELECT * FROM habits
-           WHERE archived = 0
-             AND (sprint_id = ? OR sprint_id IS NULL)
-           ORDER BY created_at""",
-        (sprint_id,),
-    ).fetchall()
+    # Get habits for this sprint (sprint_habit_goals rows + non-archived globals)
+    habits = _get_sprint_habits(conn, sprint_id)
     habits = _get_effective_goals(conn, sprint_id, habits)
 
     # Group habits by category
@@ -858,14 +884,8 @@ def sprint_dashboard(conn: sqlite3.Connection, payload: dict) -> dict:
             view_dates.append(d)
             d += timedelta(days=1)
 
-    # Get all non-archived habits for this sprint
-    habits = conn.execute(
-        """SELECT * FROM habits
-           WHERE archived = 0
-             AND (sprint_id = ? OR sprint_id IS NULL)
-           ORDER BY category, created_at""",
-        (sprint_id,),
-    ).fetchall()
+    # Get habits for this sprint (sprint_habit_goals rows + non-archived globals)
+    habits = _get_sprint_habits(conn, sprint_id)
     habits = _get_effective_goals(conn, sprint_id, habits)
 
     # Fetch all entries for these habits in the view date range

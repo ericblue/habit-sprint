@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ habit.name }} - Habit Sprint{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ habit.name }}</h1>
+  <div>
+    {% if habit.archived %}
+    <span class="badge badge-archived">Archived</span>
+    {% endif %}
+    <a href="/habits" class="btn btn-outline">&larr; All Habits</a>
+  </div>
+</div>
+
+{# Summary stats #}
+<div class="card">
+  <div class="card-meta" style="flex-wrap: wrap; gap: 1rem;">
+    <span>Category: <strong>{{ habit.category }}</strong></span>
+    <span>Default Target: <strong>{{ habit.target_per_week }}/week</strong></span>
+    <span>Weight: <strong>{{ habit.weight }}</strong></span>
+    <span>Unit: <strong>{{ habit.unit }}</strong></span>
+  </div>
+</div>
+
+{% if sprint_history %}
+{# Overall stats #}
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin: 1.5rem 0;">
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.5rem; font-weight: bold;">{{ sprint_history|length }}</div>
+    <div style="color: var(--text-secondary, #6c757d); font-size: 0.875rem;">Sprints</div>
+  </div>
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.5rem; font-weight: bold;">{{ total_entries }}</div>
+    <div style="color: var(--text-secondary, #6c757d); font-size: 0.875rem;">Total Check-ins</div>
+  </div>
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.5rem; font-weight: bold;">{{ overall_pct }}%</div>
+    <div style="color: var(--text-secondary, #6c757d); font-size: 0.875rem;">Overall Completion</div>
+  </div>
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.5rem; font-weight: bold;">{{ current_streak }}d</div>
+    <div style="color: var(--text-secondary, #6c757d); font-size: 0.875rem;">Current Streak</div>
+  </div>
+  <div class="card" style="text-align: center; padding: 1rem;">
+    <div style="font-size: 1.5rem; font-weight: bold;">{{ longest_streak }}d</div>
+    <div style="color: var(--text-secondary, #6c757d); font-size: 0.875rem;">Longest Streak</div>
+  </div>
+</div>
+
+{# Sprint history table #}
+<h2 style="margin-top: 1.5rem;">Sprint History</h2>
+<div class="grid-container">
+<table class="sprint-grid">
+  <thead>
+    <tr>
+      <th>Sprint</th>
+      <th>Dates</th>
+      <th>Done / Target</th>
+      <th>Completion</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for s in sprint_history|reverse %}
+    <tr>
+      <td><a href="/?sprint_id={{ s.sprint_id }}">{{ s.theme or s.sprint_id }}</a></td>
+      <td>{{ s.start_date }} &mdash; {{ s.end_date }}</td>
+      <td><span class="has-tooltip">{{ s.entry_count }} / {{ s.target_total }}<span class="tooltip">{{ s.target_per_week }}/week &times; {{ s.num_weeks }} week{{ 's' if s.num_weeks != 1 else '' }}</span></span></td>
+      <td>
+        <div class="progress" style="min-width: 80px;">
+          <div class="progress-bar{% if s.completion_pct >= 80 %} progress-bar-success{% elif s.completion_pct >= 50 %} progress-bar-warning{% else %} progress-bar-danger{% endif %}" style="width: {{ s.completion_pct }}%"></div>
+        </div>
+        <span style="font-size: 0.75rem;">{{ s.completion_pct }}%</span>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p style="margin-top: 1.5rem; color: var(--text-secondary, #6c757d);">No sprint history for this habit.</p>
+{% endif %}
+
+{% endblock %}

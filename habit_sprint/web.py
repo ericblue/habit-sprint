@@ -115,6 +115,18 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         result = execute({"action": "sprint_dashboard", "payload": payload}, db_path)
 
         if result["status"] == "error":
+            error_msg = result.get("error", "")
+            # If a specific sprint was requested but had an error (e.g. week out of range),
+            # show the error rather than the generic "No Active Sprint" message
+            if sprint_id:
+                return templates.TemplateResponse("dashboard.html", {
+                    "request": request,
+                    "active_nav": "dashboard",
+                    "data": None,
+                    "dates": [],
+                    "week": week,
+                    "error": error_msg,
+                })
             # No active sprint — render empty dashboard
             return templates.TemplateResponse("dashboard.html", {
                 "request": request,
@@ -151,12 +163,16 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
                 ).fetchall()
                 habit["notes"] = {r[0]: r[1] for r in rows}
 
+        import math
+        num_weeks = math.ceil(((sprint_end - sprint_start).days + 1) / 7)
+
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
             "active_nav": "dashboard",
             "data": data,
             "dates": view_dates,
             "week": week,
+            "num_weeks": num_weeks,
         })
 
     @app.get("/health")
@@ -213,18 +229,35 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
     # --- Habit management pages ---
 
     @app.get("/habits")
-    async def habits_list(request: Request):
+    async def habits_list(request: Request, show_archived: Optional[str] = None):
         result = execute(
             {"action": "list_habits", "payload": {"include_archived": True}},
             request.app.state.db_path,
         )
         habits = result["data"]["habits"] if result["status"] == "success" else []
+
+        # Enrich habits with entry counts and sprint goal counts
+        conn = get_connection(request.app.state.db_path)
+        for h in habits:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM entries WHERE habit_id = ?", (h["id"],)
+            ).fetchone()
+            h["entry_count"] = row[0]
+            row = conn.execute(
+                "SELECT COUNT(*) FROM sprint_habit_goals WHERE habit_id = ?", (h["id"],)
+            ).fetchone()
+            h["sprint_count"] = row[0]
+
+        archived_count = sum(1 for h in habits if h.get("archived"))
+
         return templates.TemplateResponse(
             "habits_list.html",
             {
                 "request": request,
                 "habits": habits,
                 "active_nav": "habits",
+                "show_archived": bool(show_archived),
+                "archived_count": archived_count,
                 "success_message": request.query_params.get("msg"),
             },
         )
@@ -247,6 +280,130 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
                 "active_sprint": active_sprint,
             },
         )
+
+    @app.get("/habits/{habit_id}")
+    async def habit_detail(request: Request, habit_id: str):
+        """Show habit detail page with sprint history and stats."""
+        conn = get_connection(request.app.state.db_path)
+
+        # Get the habit
+        row = conn.execute("SELECT * FROM habits WHERE id = ?", (habit_id,)).fetchone()
+        if row is None:
+            return RedirectResponse(url="/habits?msg=Habit+not+found", status_code=303)
+        habit = dict(row)
+
+        # Get all sprints this habit participated in (via sprint_habit_goals or sprint_id)
+        sprint_rows = conn.execute(
+            """SELECT DISTINCT s.id AS sprint_id, s.start_date, s.end_date, s.theme,
+                      COALESCE(shg.target_per_week, ?) AS target_per_week
+               FROM sprints s
+               LEFT JOIN sprint_habit_goals shg ON shg.sprint_id = s.id AND shg.habit_id = ?
+               WHERE shg.sprint_id IS NOT NULL
+                  OR s.id = ?
+               ORDER BY s.start_date""",
+            (habit["target_per_week"], habit_id, habit.get("sprint_id")),
+        ).fetchall()
+
+        # Also include sprints where this habit has entries but no explicit binding
+        entry_sprint_rows = conn.execute(
+            """SELECT DISTINCT s.id AS sprint_id, s.start_date, s.end_date, s.theme
+               FROM sprints s
+               JOIN entries e ON e.habit_id = ? AND e.date BETWEEN s.start_date AND s.end_date
+               WHERE s.id NOT IN (
+                   SELECT COALESCE(shg2.sprint_id, '') FROM sprint_habit_goals shg2 WHERE shg2.habit_id = ?
+               )
+               AND s.id != COALESCE(?, '')
+               ORDER BY s.start_date""",
+            (habit_id, habit_id, habit.get("sprint_id")),
+        ).fetchall()
+
+        # Merge sprint lists (convert Row objects to dicts)
+        seen_ids = {r["sprint_id"] for r in sprint_rows}
+        all_sprint_data = [dict(r) for r in sprint_rows]
+        for r in entry_sprint_rows:
+            if r["sprint_id"] not in seen_ids:
+                all_sprint_data.append(dict(r))
+
+        # Build sprint history with completion stats
+        sprint_history = []
+        total_entries = 0
+        total_target = 0
+        from datetime import datetime
+        for s in all_sprint_data:
+            start = datetime.strptime(s["start_date"], "%Y-%m-%d").date()
+            end = datetime.strptime(s["end_date"], "%Y-%m-%d").date()
+            num_weeks = max(1, ((end - start).days + 1) // 7)
+
+            # Get target for this sprint
+            goal_row = conn.execute(
+                "SELECT target_per_week FROM sprint_habit_goals WHERE sprint_id = ? AND habit_id = ?",
+                (s["sprint_id"], habit_id),
+            ).fetchone()
+            target_per_week = goal_row[0] if goal_row else habit["target_per_week"]
+            target_total = target_per_week * num_weeks
+
+            # Count entries in this sprint's date range
+            entry_count = conn.execute(
+                "SELECT COUNT(*) FROM entries WHERE habit_id = ? AND date BETWEEN ? AND ? AND value > 0",
+                (habit_id, s["start_date"], s["end_date"]),
+            ).fetchone()[0]
+
+            completion_pct = min(100, round(entry_count / target_total * 100)) if target_total > 0 else 0
+
+            sprint_history.append({
+                "sprint_id": s["sprint_id"],
+                "theme": s.get("theme") or s["sprint_id"],
+                "start_date": s["start_date"],
+                "end_date": s["end_date"],
+                "target_per_week": target_per_week,
+                "num_weeks": num_weeks,
+                "target_total": target_total,
+                "entry_count": entry_count,
+                "completion_pct": completion_pct,
+            })
+            total_entries += entry_count
+            total_target += target_total
+
+        overall_pct = min(100, round(total_entries / total_target * 100)) if total_target > 0 else 0
+
+        # Calculate streaks
+        all_dates = conn.execute(
+            "SELECT date FROM entries WHERE habit_id = ? AND value > 0 ORDER BY date DESC",
+            (habit_id,),
+        ).fetchall()
+        date_set = {r[0] for r in all_dates}
+
+        current_streak = 0
+        d = date.today()
+        while d.isoformat() in date_set:
+            current_streak += 1
+            d -= timedelta(days=1)
+
+        longest_streak = 0
+        streak = 0
+        for r in sorted(all_dates, key=lambda x: x[0]):
+            dt = datetime.strptime(r[0], "%Y-%m-%d").date()
+            if streak == 0:
+                streak = 1
+            else:
+                if (dt - prev_dt).days == 1:
+                    streak += 1
+                else:
+                    longest_streak = max(longest_streak, streak)
+                    streak = 1
+            prev_dt = dt
+        longest_streak = max(longest_streak, streak)
+
+        return templates.TemplateResponse("habit_detail.html", {
+            "request": request,
+            "habit": habit,
+            "sprint_history": sprint_history,
+            "total_entries": total_entries,
+            "overall_pct": overall_pct,
+            "current_streak": current_streak,
+            "longest_streak": longest_streak,
+            "active_nav": "habits",
+        })
 
     @app.post("/habits")
     async def habit_create(
@@ -383,15 +540,51 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
             return RedirectResponse(url=f"/habits?msg={result['error']}", status_code=303)
         return RedirectResponse(url="/habits?msg=Habit+restored", status_code=303)
 
+    @app.post("/habits/{habit_id}/delete")
+    async def habit_delete(request: Request, habit_id: str):
+        result = execute(
+            {"action": "delete_habit", "payload": {"id": habit_id}},
+            request.app.state.db_path,
+        )
+        if result["status"] == "error":
+            return RedirectResponse(url=f"/habits?msg={result['error']}", status_code=303)
+        return RedirectResponse(url="/habits?msg=Habit+deleted", status_code=303)
+
     # --- Sprint management pages ---
 
     @app.get("/sprints", response_class=HTMLResponse)
-    async def sprints_list(request: Request):
+    async def sprints_list(request: Request, year: Optional[str] = None):
         result = execute({"action": "list_sprints", "payload": {}}, request.app.state.db_path)
         sprints = result["data"]["sprints"] if result["status"] == "success" else []
         error = result.get("error") if result["status"] == "error" else None
+
+        # Sort: active first, then by start_date descending
+        sprints.sort(key=lambda s: (0 if s["status"] == "active" else 1, s.get("start_date", "")), reverse=False)
+        # Reverse archived ones so newest is first, but keep active at top
+        active = [s for s in sprints if s["status"] == "active"]
+        archived = [s for s in sprints if s["status"] != "active"]
+        archived.sort(key=lambda s: s.get("start_date", ""), reverse=True)
+        sprints = active + archived
+
+        # Collect available years for the year filter
+        years = sorted({s["start_date"][:4] for s in sprints if s.get("start_date")}, reverse=True)
+
+        # Filter by year if specified
+        if year:
+            sprints = [s for s in sprints if s.get("start_date", "").startswith(year)]
+
+        # Group sprints by year-month for display
+        from collections import OrderedDict
+        grouped: OrderedDict[str, list] = OrderedDict()
+        for s in sprints:
+            sd = s.get("start_date", "")
+            ym = sd[:7] if len(sd) >= 7 else "Unknown"
+            grouped.setdefault(ym, []).append(s)
+
         return templates.TemplateResponse("sprints_list.html", {
-            "request": request, "sprints": sprints, "error": error, "active_nav": "sprints",
+            "request": request, "sprints": sprints, "grouped": grouped,
+            "years": years, "selected_year": year,
+            "error": error, "active_nav": "sprints",
         })
 
     @app.get("/sprints/new", response_class=HTMLResponse)
@@ -671,20 +864,55 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
 
         cell_html = _build_cell_html(habit_id, toggle_date, checked, note, week, css_class="just-toggled")
 
-        # Compute updated daily total for this date (OOB swap)
+        # Compute updated daily total and habit done count (OOB swaps)
         dashboard_result = execute(
             {"action": "sprint_dashboard", "payload": ({"week": week} if week is not None else {})},
             db,
         )
         oob_html = ""
         if dashboard_result["status"] == "success":
-            tot = dashboard_result["data"]["daily_totals"].get(toggle_date, {"points": 0, "max": 0})
+            data = dashboard_result["data"]
+            tot = data["daily_totals"].get(toggle_date, {"points": 0, "max": 0})
             total_id = f"total-{toggle_date}"
             oob_html = (
                 f'<td id="{total_id}" class="pct-cell" hx-swap-oob="true">'
                 f'{int(tot["points"])}/{int(tot["max"])}'
                 f"</td>"
             )
+
+            # Update the habit's Done cell
+            import math
+            sprint_start = date.fromisoformat(data["sprint"]["start_date"])
+            sprint_end = date.fromisoformat(data["sprint"]["end_date"])
+            if week is not None:
+                num_wks = 1
+            else:
+                num_wks = math.ceil(((sprint_end - sprint_start).days + 1) / 7)
+            for cat in data["categories"]:
+                for h in cat["habits"]:
+                    if h["habit_id"] == habit_id:
+                        actual = h["week_actual"]
+                        target_total = h["target_per_week"] * num_wks
+                        pct = int(actual / target_total * 100) if target_total > 0 else 0
+                        pct = min(pct, 100)
+                        if pct >= 80:
+                            bar_class = "progress-bar-success"
+                        elif pct >= 50:
+                            bar_class = "progress-bar-warning"
+                        else:
+                            bar_class = "progress-bar-danger"
+                        tip = f'{actual} done / {h["target_per_week"]}/wk'
+                        if num_wks > 1:
+                            tip += f" &times; {num_wks} wks"
+                        oob_html += (
+                            f'<td id="done-{habit_id}" class="pct-cell" hx-swap-oob="true">'
+                            f'<span class="has-tooltip">{actual}/{target_total}'
+                            f'<span class="tooltip">{tip}</span></span>'
+                            f'<div class="progress progress-sm progress-inline">'
+                            f'<div class="progress-bar {bar_class}" style="width: {pct}%"></div>'
+                            f'</div></td>'
+                        )
+                        break
 
         return HTMLResponse(content=cell_html + oob_html)
 
@@ -720,3 +948,7 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         return HTMLResponse(content=cell_html)
 
     return app
+
+
+# Module-level app instance for uvicorn reload mode (uses HABIT_SPRINT_DB env var)
+app = create_app(db_path=os.environ.get("HABIT_SPRINT_DB", DEFAULT_DB_PATH))

@@ -70,7 +70,7 @@ def consolidate(conn: sqlite3.Connection) -> dict:
             # Single habit — still ensure it's global and has goals if sprint-scoped
             habit = group[0]
             if habit["sprint_id"] is not None:
-                # Preserve goal before making global
+                # Preserve goal before making global and archiving
                 conn.execute(
                     """INSERT OR IGNORE INTO sprint_habit_goals
                        (sprint_id, habit_id, target_per_week, weight)
@@ -80,7 +80,7 @@ def consolidate(conn: sqlite3.Connection) -> dict:
                 )
                 goals_inserted += 1
                 conn.execute(
-                    "UPDATE habits SET sprint_id = NULL WHERE id = ?",
+                    "UPDATE habits SET sprint_id = NULL, archived = 1 WHERE id = ?",
                     (habit["id"],),
                 )
             continue
@@ -130,9 +130,9 @@ def consolidate(conn: sqlite3.Connection) -> dict:
             conn.execute("DELETE FROM habits WHERE id = ?", (dup_id,))
             habits_deleted += 1
 
-        # --- Make canonical habit global ---
+        # --- Make canonical habit global and archived (historical only) ---
         conn.execute(
-            "UPDATE habits SET sprint_id = NULL WHERE id = ?",
+            "UPDATE habits SET sprint_id = NULL, archived = 1 WHERE id = ?",
             (canonical_id,),
         )
 
