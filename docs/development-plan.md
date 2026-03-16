@@ -675,7 +675,7 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 | 9.4 | cross_sprint_report CLI action + formatter | New engine action comparing metrics across sprints, with markdown formatter | High | L | — | Done <!-- vk:ERI-62 --> |
 | 9.5 | Category balance chart + weekly score trend | Category balance radar/bar chart and daily completion % line chart | Medium | M | 9.1 | <!-- vk:ERI-63 --> |
 | 9.6 | Habit trend line chart (per-habit across sprints) | Per-habit weekly completion % line chart across sprints | Medium | M | 9.1 | <!-- vk:ERI-64 --> |
-| 9.7 | Streak leaderboard + progress_summary CLI action | Streak ranking table and holistic `progress_summary` CLI action for LLM | Medium | M | 9.4 | <!-- vk:ERI-65 --> |
+| 9.7 | Streak leaderboard + progress_summary CLI action | Streak ranking table and holistic `progress_summary` CLI action for LLM | Medium | M | 9.4 | Done <!-- vk:ERI-65 --> |
 | 9.8 | README refresh + screenshots | Update README to reflect web UI, reports, per-sprint goals, and current feature set; add screenshots of dashboard, reports, and habit detail pages | Medium | S | 9.7 | |
 
 ### Task Details
@@ -729,11 +729,11 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - [ ] Tests for API endpoint
 
 **9.7 - Streak leaderboard + progress_summary CLI action**
-- [ ] Streak leaderboard table: habit name, current streak, longest streak, total check-ins
-- [ ] Visual streak indicators
-- [ ] New `progress_summary` CLI action: overall trend, top/bottom habits, category balance, active streaks
-- [ ] Validation schema and markdown formatter for `progress_summary`
-- [ ] Tests for leaderboard and progress_summary
+- [x] Streak leaderboard table: habit name, current streak, longest streak, total check-ins
+- [x] Visual streak indicators
+- [x] New `progress_summary` CLI action: overall trend, top/bottom habits, category balance, active streaks
+- [x] Validation schema and markdown formatter for `progress_summary`
+- [x] Tests for leaderboard and progress_summary
 
 **9.8 - README refresh + screenshots**
 - [ ] Update README intro to highlight both LLM-first and web UI approaches as dual interfaces

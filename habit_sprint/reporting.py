@@ -987,6 +987,219 @@ def cross_sprint_report(conn: sqlite3.Connection, payload: dict) -> dict:
     }
 
 
+def streak_leaderboard(conn: sqlite3.Connection, payload: dict) -> dict:
+    """Return a streak leaderboard for all active habits.
+
+    Payload
+    -------
+    sprint_id : str, optional
+        Scope to habits in a specific sprint.  Defaults to the active sprint.
+
+    Returns
+    -------
+    dict with ``habits`` list sorted by current_streak descending.
+    """
+    sprint_id = payload.get("sprint_id")
+
+    # Resolve sprint
+    if sprint_id:
+        row = conn.execute(
+            "SELECT * FROM sprints WHERE id = ?", (sprint_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Sprint not found: {sprint_id}")
+        sprint = dict(row)
+    else:
+        row = conn.execute(
+            "SELECT * FROM sprints WHERE status = 'active' ORDER BY start_date LIMIT 1"
+        ).fetchone()
+        if row is None:
+            raise ValueError("No active sprint found")
+        sprint = dict(row)
+        sprint_id = sprint["id"]
+
+    habits = _get_sprint_habits(conn, sprint_id)
+    habits = _get_effective_goals(conn, sprint_id, habits)
+
+    leaderboard = []
+    for h in habits:
+        entry_rows = conn.execute(
+            "SELECT date FROM entries WHERE habit_id = ? AND value > 0 ORDER BY date",
+            (h["id"],),
+        ).fetchall()
+        current_streak, longest_streak = _compute_streaks(entry_rows)
+        total_checkins = len(entry_rows)
+
+        leaderboard.append({
+            "habit_id": h["id"],
+            "name": h["name"],
+            "category": h["category"],
+            "current_streak": current_streak,
+            "longest_streak": longest_streak,
+            "total_checkins": total_checkins,
+        })
+
+    # Sort by current_streak desc, then longest_streak desc, then total_checkins desc
+    leaderboard.sort(
+        key=lambda x: (x["current_streak"], x["longest_streak"], x["total_checkins"]),
+        reverse=True,
+    )
+
+    return {"sprint_id": sprint_id, "habits": leaderboard}
+
+
+def progress_summary(conn: sqlite3.Connection, payload: dict) -> dict:
+    """Return a holistic progress summary for LLM consumption.
+
+    Payload
+    -------
+    sprint_id : str, optional
+        Scope to a specific sprint.  Defaults to the active sprint.
+
+    Returns
+    -------
+    dict with overall_trend, strongest/weakest habits, category balance,
+    active streaks, and recommendations.
+    """
+    sprint_id = payload.get("sprint_id")
+
+    # Resolve sprint
+    if sprint_id:
+        row = conn.execute(
+            "SELECT * FROM sprints WHERE id = ?", (sprint_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Sprint not found: {sprint_id}")
+        sprint = dict(row)
+    else:
+        row = conn.execute(
+            "SELECT * FROM sprints WHERE status = 'active' ORDER BY start_date LIMIT 1"
+        ).fetchone()
+        if row is None:
+            raise ValueError("No active sprint found")
+        sprint = dict(row)
+        sprint_id = sprint["id"]
+
+    start = date.fromisoformat(sprint["start_date"])
+    end = date.fromisoformat(sprint["end_date"])
+    total_days = (end - start).days + 1
+    num_weeks = math.ceil(total_days / 7)
+
+    # Get habits
+    habits = _get_sprint_habits(conn, sprint_id)
+    habits = _get_effective_goals(conn, sprint_id, habits)
+
+    # Compute per-habit stats
+    habit_stats = []
+    cat_data: dict[str, dict] = {}
+
+    for h in habits:
+        target_entries = h["target_per_week"] * num_weeks
+        actual_entries = conn.execute(
+            "SELECT COUNT(*) FROM entries WHERE habit_id = ? "
+            "AND date >= ? AND date <= ? AND value > 0",
+            (h["id"], sprint["start_date"], sprint["end_date"]),
+        ).fetchone()[0]
+        completion_pct = round(actual_entries / target_entries * 100) if target_entries > 0 else 0
+
+        entry_rows = conn.execute(
+            "SELECT date FROM entries WHERE habit_id = ? AND value > 0 ORDER BY date",
+            (h["id"],),
+        ).fetchall()
+        current_streak, longest_streak = _compute_streaks(entry_rows)
+
+        stat = {
+            "habit_id": h["id"],
+            "name": h["name"],
+            "category": h["category"],
+            "weight": h["weight"],
+            "completion_pct": completion_pct,
+            "actual": actual_entries,
+            "target": target_entries,
+            "current_streak": current_streak,
+            "longest_streak": longest_streak,
+        }
+        habit_stats.append(stat)
+
+        # Category accumulation
+        cat = h["category"]
+        if cat not in cat_data:
+            cat_data[cat] = {"weighted_actual": 0, "weighted_target": 0}
+        cat_data[cat]["weighted_actual"] += actual_entries * h["weight"]
+        cat_data[cat]["weighted_target"] += target_entries * h["weight"]
+
+    # Sort habits by completion_pct
+    sorted_by_completion = sorted(habit_stats, key=lambda x: x["completion_pct"], reverse=True)
+    strongest = sorted_by_completion[:3]
+    weakest = sorted(habit_stats, key=lambda x: x["completion_pct"])[:3]
+
+    # Category balance
+    category_balance = []
+    for cat_name, cd in cat_data.items():
+        wa = cd["weighted_actual"]
+        wt = cd["weighted_target"]
+        category_balance.append({
+            "category": cat_name,
+            "weighted_score": round(wa / wt * 100) if wt > 0 else 0,
+        })
+    category_balance.sort(key=lambda x: x["weighted_score"], reverse=True)
+
+    # Active streaks (habits with current_streak > 0)
+    active_streaks = [
+        {"habit_id": s["habit_id"], "name": s["name"], "current_streak": s["current_streak"]}
+        for s in sorted(habit_stats, key=lambda x: x["current_streak"], reverse=True)
+        if s["current_streak"] > 0
+    ]
+
+    # Overall trend from cross_sprint_report
+    cross_data = cross_sprint_report(conn, {})
+    overall_trend = cross_data.get("overall_trend", "stable")
+
+    # Overall weighted score for this sprint
+    total_wa = sum(cd["weighted_actual"] for cd in cat_data.values())
+    total_wt = sum(cd["weighted_target"] for cd in cat_data.values())
+    overall_score = round(total_wa / total_wt * 100) if total_wt > 0 else 0
+
+    # Recommendations
+    recommendations = []
+    if weakest and weakest[0]["completion_pct"] < 50:
+        recommendations.append(
+            f"Focus on \"{weakest[0]['name']}\" — only {weakest[0]['completion_pct']}% completion."
+        )
+    if len(category_balance) >= 2:
+        spread = category_balance[0]["weighted_score"] - category_balance[-1]["weighted_score"]
+        if spread > 30:
+            recommendations.append(
+                f"Category imbalance detected: {category_balance[-1]['category']} "
+                f"({category_balance[-1]['weighted_score']}%) lags behind "
+                f"{category_balance[0]['category']} ({category_balance[0]['weighted_score']}%)."
+            )
+    no_streak = [s for s in habit_stats if s["current_streak"] == 0]
+    if no_streak:
+        recommendations.append(
+            f"{len(no_streak)} habit(s) have no active streak — consider re-engaging."
+        )
+    if overall_trend == "declining":
+        recommendations.append("Overall trend is declining — review workload and priorities.")
+
+    return {
+        "sprint_id": sprint_id,
+        "overall_score": overall_score,
+        "overall_trend": overall_trend,
+        "strongest_habits": [
+            {"habit_id": s["habit_id"], "name": s["name"], "completion_pct": s["completion_pct"]}
+            for s in strongest
+        ],
+        "weakest_habits": [
+            {"habit_id": s["habit_id"], "name": s["name"], "completion_pct": s["completion_pct"]}
+            for s in weakest
+        ],
+        "category_balance": category_balance,
+        "active_streaks": active_streaks,
+        "recommendations": recommendations,
+    }
+
+
 def sprint_dashboard(conn: sqlite3.Connection, payload: dict) -> dict:
     sprint_id = payload.get("sprint_id")
     week = payload.get("week")  # 1 or 2, optional
