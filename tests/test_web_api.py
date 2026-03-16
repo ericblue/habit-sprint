@@ -1242,3 +1242,60 @@ class TestHabitTrendAPI:
         resp = seeded_client.get("/reports?tab=trends")
         assert resp.status_code == 200
         assert 'id="trends-chart"' in resp.text
+
+
+class TestSettingsPage:
+    """Test the settings / database info page."""
+
+    def test_settings_returns_200(self, client):
+        """GET /settings returns 200."""
+        resp = client.get("/settings")
+        assert resp.status_code == 200
+        assert "Database" in resp.text
+        assert "Schema Version" in resp.text
+
+    def test_settings_shows_stats(self, seeded_client):
+        """Settings page shows data stats."""
+        seeded_client.post("/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-05", "value": 1,
+        })
+        resp = seeded_client.get("/settings")
+        assert resp.status_code == 200
+        assert "Habits" in resp.text
+        assert "Sprints" in resp.text
+        assert "Entries" in resp.text
+        assert "Export" in resp.text
+
+    def test_settings_nav_active(self, client):
+        """Settings nav link is marked active."""
+        resp = client.get("/settings")
+        assert 'class="active"' in resp.text or "active" in resp.text
+
+    def test_export_entries_csv(self, seeded_client):
+        """GET /export/entries.csv returns a CSV download."""
+        seeded_client.post("/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-05", "value": 1,
+        })
+        resp = seeded_client.get("/export/entries.csv")
+        assert resp.status_code == 200
+        assert resp.headers["content-type"] == "text/csv; charset=utf-8"
+        assert "attachment" in resp.headers["content-disposition"]
+        assert "habit_id" in resp.text
+        assert "exercise" in resp.text
+
+    def test_export_habits_csv(self, seeded_client):
+        """GET /export/habits.csv returns habit data."""
+        resp = seeded_client.get("/export/habits.csv")
+        assert resp.status_code == 200
+        assert "name" in resp.text
+        assert "Exercise" in resp.text
+
+    def test_export_unknown_table_404(self, client):
+        """GET /export/badtable.csv returns 404."""
+        resp = client.get("/export/badtable.csv")
+        assert resp.status_code == 404
+
+    def test_export_empty_table(self, client):
+        """GET /export/retros.csv on empty table returns CSV."""
+        resp = client.get("/export/retros.csv")
+        assert resp.status_code == 200

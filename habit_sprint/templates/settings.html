@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — Habit Sprint{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+
+<div class="settings-section">
+  <h2>Database</h2>
+  <table class="settings-table">
+    <tr><th>Location</th><td><code>{{ db_path }}</code></td></tr>
+    <tr><th>File Size</th><td>{{ db_size }}</td></tr>
+    <tr><th>Schema Version</th><td>{{ schema_version }}</td></tr>
+  </table>
+</div>
+
+<div class="settings-section">
+  <h2>Data Summary</h2>
+  <table class="settings-table">
+    <tr><th>Habits</th><td>{{ stats.habits }} ({{ stats.archived_habits }} archived)</td></tr>
+    <tr><th>Sprints</th><td>{{ stats.sprints }} ({{ stats.active_sprints }} active, {{ stats.archived_sprints }} archived)</td></tr>
+    <tr><th>Entries</th><td>{{ stats.entries }} check-ins</td></tr>
+    <tr><th>Date Range</th><td>{% if stats.min_date %}{{ stats.min_date }} — {{ stats.max_date }}{% else %}No entries yet{% endif %}</td></tr>
+    <tr><th>Retrospectives</th><td>{{ stats.retros }}</td></tr>
+    {% if stats.has_sprint_habit_goals %}
+    <tr><th>Sprint Goal Overrides</th><td>{{ stats.sprint_habit_goals }}</td></tr>
+    {% endif %}
+  </table>
+</div>
+
+<div class="settings-section">
+  <h2>Export Data</h2>
+  <p>Download your data as CSV files for backup or analysis.</p>
+  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem;">
+    <a href="/export/habits.csv" class="btn">Habits</a>
+    <a href="/export/sprints.csv" class="btn">Sprints</a>
+    <a href="/export/entries.csv" class="btn">Entries</a>
+    <a href="/export/retros.csv" class="btn">Retrospectives</a>
+    {% if stats.has_sprint_habit_goals %}
+    <a href="/export/sprint_habit_goals.csv" class="btn">Sprint Goals</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

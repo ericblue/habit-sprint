@@ -1216,6 +1216,109 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         cell_html = _build_cell_html(habit_id, note_date, checked, note_text or "", week)
         return HTMLResponse(content=cell_html)
 
+    # --- Settings / Database page ---
+
+    @app.get("/settings", response_class=HTMLResponse)
+    async def settings(request: Request):
+        """Render the settings page with database info and stats."""
+        import csv as _csv
+        import io as _io
+
+        db = request.app.state.db_path
+        conn = get_connection(db)
+
+        # File size
+        try:
+            size_bytes = os.path.getsize(db)
+            if size_bytes < 1024:
+                db_size = f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                db_size = f"{size_bytes / 1024:.1f} KB"
+            else:
+                db_size = f"{size_bytes / (1024 * 1024):.1f} MB"
+        except OSError:
+            db_size = "unknown"
+
+        # Schema version
+        try:
+            schema_version = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
+        except Exception:
+            schema_version = "unknown"
+
+        # Stats
+        habits = conn.execute("SELECT COUNT(*) FROM habits").fetchone()[0]
+        archived_habits = conn.execute("SELECT COUNT(*) FROM habits WHERE archived = 1").fetchone()[0]
+        sprints = conn.execute("SELECT COUNT(*) FROM sprints").fetchone()[0]
+        active_sprints = conn.execute("SELECT COUNT(*) FROM sprints WHERE status = 'active'").fetchone()[0]
+        archived_sprints = conn.execute("SELECT COUNT(*) FROM sprints WHERE status = 'archived'").fetchone()[0]
+        entries = conn.execute("SELECT COUNT(*) FROM entries WHERE value > 0").fetchone()[0]
+        date_range = conn.execute("SELECT MIN(date), MAX(date) FROM entries WHERE value > 0").fetchone()
+        retros = conn.execute("SELECT COUNT(*) FROM retros").fetchone()[0]
+
+        has_shg = conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE name='sprint_habit_goals'").fetchone()[0]
+        shg_count = 0
+        if has_shg:
+            shg_count = conn.execute("SELECT COUNT(*) FROM sprint_habit_goals").fetchone()[0]
+
+        stats = {
+            "habits": habits,
+            "archived_habits": archived_habits,
+            "sprints": sprints,
+            "active_sprints": active_sprints,
+            "archived_sprints": archived_sprints,
+            "entries": entries,
+            "min_date": date_range[0] if date_range else None,
+            "max_date": date_range[1] if date_range else None,
+            "retros": retros,
+            "has_sprint_habit_goals": bool(has_shg),
+            "sprint_habit_goals": shg_count,
+        }
+
+        return templates.TemplateResponse("settings.html", {
+            "request": request,
+            "active_nav": "settings",
+            "db_path": os.path.abspath(db),
+            "db_size": db_size,
+            "schema_version": schema_version,
+            "stats": stats,
+        })
+
+    @app.get("/export/{table_name}.csv")
+    async def export_csv(request: Request, table_name: str):
+        """Export a database table as CSV."""
+        import csv as _csv
+        import io as _io
+
+        allowed = {"habits", "sprints", "entries", "retros", "sprint_habit_goals"}
+        if table_name not in allowed:
+            return JSONResponse({"error": f"Unknown table: {table_name}"}, status_code=404)
+
+        conn = get_connection(request.app.state.db_path)
+
+        # Check table exists
+        exists = conn.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
+        ).fetchone()[0]
+        if not exists:
+            return JSONResponse({"error": f"Table {table_name} does not exist"}, status_code=404)
+
+        rows = conn.execute(f"SELECT * FROM {table_name}").fetchall()  # noqa: S608 — table_name is validated above
+
+        output = _io.StringIO()
+        if rows:
+            writer = _csv.writer(output)
+            writer.writerow(rows[0].keys())
+            for row in rows:
+                writer.writerow(tuple(row))
+        else:
+            output.write("(empty table)\n")
+
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": f'attachment; filename="{table_name}.csv"'},
+        )
+
     return app
 
 

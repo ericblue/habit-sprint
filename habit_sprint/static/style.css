@@ -206,6 +206,13 @@ nav a.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
 }
 .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
 
+/* === Settings page === */
+.settings-section { margin-bottom: 2rem; }
+.settings-section h2 { margin-bottom: 0.75rem; }
+.settings-table { max-width: 600px; }
+.settings-table th { width: 200px; font-weight: 600; color: var(--text-muted); }
+.settings-table code { background: var(--bg-surface); padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
+
 /* === Tables === */
 table { width: 100%; border-collapse: collapse; background: var(--bg-surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
 th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border-light); }
