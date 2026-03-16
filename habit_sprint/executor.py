@@ -35,6 +35,7 @@ _QUERY_ACTIONS = {
     "habit_report": reporting.habit_report,
     "category_report": reporting.category_report,
     "sprint_dashboard": reporting.sprint_dashboard,
+    "cross_sprint_report": reporting.cross_sprint_report,
 }
 
 _ACTION_TABLE = {**_MUTATION_ACTIONS, **_QUERY_ACTIONS}

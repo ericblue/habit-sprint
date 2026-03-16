@@ -203,6 +203,10 @@ ACTION_SCHEMAS = {
         "sprint_id": {"type": "str", "required": False},
         "week": {"type": "int", "required": False, "min": 1, "max": 2},
     },
+    "cross_sprint_report": {
+        "limit": {"type": "int", "required": False, "min": 1},
+        "habit_id": {"type": "str", "required": False},
+    },
 }
 
 

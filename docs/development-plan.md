@@ -672,7 +672,7 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 | 9.1 | Reports page layout + Chart.js/cal-heatmap integration | Create `/reports` route, base template with tab nav, load Chart.js + cal-heatmap via CDN | High | M | 6.7 | <!-- vk:ERI-59 --> |
 | 9.2 | Sprint comparison report (table + bar chart) | Sprint comparison view with table and Chart.js bar chart of weighted scores | High | L | 9.1 | <!-- vk:ERI-60 --> |
 | 9.3 | Habit consistency heatmap (GitHub-style calendar) | GitHub-style contribution heatmap for daily check-ins using cal-heatmap | High | L | 9.1 | <!-- vk:ERI-61 --> |
-| 9.4 | cross_sprint_report CLI action + formatter | New engine action comparing metrics across sprints, with markdown formatter | High | L | — | <!-- vk:ERI-62 --> |
+| 9.4 | cross_sprint_report CLI action + formatter | New engine action comparing metrics across sprints, with markdown formatter | High | L | — | Done <!-- vk:ERI-62 --> |
 | 9.5 | Category balance chart + weekly score trend | Category balance radar/bar chart and daily completion % line chart | Medium | M | 9.1 | <!-- vk:ERI-63 --> |
 | 9.6 | Habit trend line chart (per-habit across sprints) | Per-habit weekly completion % line chart across sprints | Medium | M | 9.1 | <!-- vk:ERI-64 --> |
 | 9.7 | Streak leaderboard + progress_summary CLI action | Streak ranking table and holistic `progress_summary` CLI action for LLM | Medium | M | 9.4 | <!-- vk:ERI-65 --> |
@@ -704,13 +704,13 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - [ ] Tests for API endpoint
 
 **9.4 - cross_sprint_report CLI action + formatter**
-- [ ] New `cross_sprint_report` action in executor (query action)
-- [ ] Payload: optional `limit`, optional `habit_id`
-- [ ] Returns: array of sprint summaries with weighted/unweighted scores, per-category scores, trend deltas
-- [ ] Includes overall trend assessment (improving/declining/stable)
-- [ ] Validation schema in validation.py
-- [ ] Markdown formatter in formatters.py
-- [ ] Unit tests with multiple sprints
+- [x] New `cross_sprint_report` action in executor (query action)
+- [x] Payload: optional `limit`, optional `habit_id`
+- [x] Returns: array of sprint summaries with weighted/unweighted scores, per-category scores, trend deltas
+- [x] Includes overall trend assessment (improving/declining/stable)
+- [x] Validation schema in validation.py
+- [x] Markdown formatter in formatters.py
+- [x] Unit tests with multiple sprints
 
 **9.5 - Category balance chart + weekly score trend**
 - [ ] Category balance chart (radar or horizontal bar) for current sprint
