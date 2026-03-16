@@ -47,7 +47,7 @@ Habit Sprint is a deterministic, JSON-native sprint-based habit tracking engine 
 | 6. Web UI | Done | 100% |
 | 7. Web UI Polish & Sprint Habit Management | Done | 100% |
 | 8. Habit Consolidation & Per-Sprint Goals | Done | 100% |
-| 9. Reports & Analytics | Not Started | 0% |
+| 9. Reports & Analytics | Done | 100% |
 
 ---
 
@@ -650,7 +650,7 @@ CREATE TABLE sprint_habit_goals (
 
 ---
 
-## Epic 9: Reports & Analytics (NOT STARTED)
+## Epic 9: Reports & Analytics (DONE)
 
 Add a dedicated reports feature with static and dynamic reports for the web UI, plus more sophisticated cross-sprint reporting for the CLI/LLM interface. Includes lightweight charts using Chart.js and cal-heatmap.
 
@@ -807,3 +807,4 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - **2026-03-11**: Autonomous work loop completed Epic 8 in 4 iterations. All 6/6 tasks done, 0 merge conflicts, 0 test fixes. All 8 epics complete. 798 tests passing.
 - **2026-03-11**: Added Epic 9 (Reports & Analytics) — 7 tasks for reports page with Chart.js/cal-heatmap, sprint comparison, habit heatmap, cross-sprint CLI report, category balance, habit trends, streak leaderboard. Created VK epic ERI-58 and tasks ERI-59 through ERI-65.
 - **2026-03-11**: Synced with VibeKanban — Epics 1-8 confirmed Done. Epic 9 added (0/7 tasks). 45/52 total tasks complete.
+- **2026-03-15**: Autonomous work loop completed Epic 9 (Reports & Analytics) in 3 iterations. All 8/8 tasks done (9.1-9.8), 2 merge conflicts auto-resolved, 0 test fixes. All 9 epics complete. 882 tests passing. README refreshed.
