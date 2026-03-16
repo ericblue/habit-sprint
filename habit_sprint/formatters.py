@@ -582,6 +582,105 @@ def format_category_report(data: dict) -> str:
 # Dispatcher — maps action names to formatter functions
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# cross_sprint_report — comparison table across sprints
+# ---------------------------------------------------------------------------
+
+def format_cross_sprint_report(data: dict) -> str:
+    """Render cross_sprint_report data as a comparison table."""
+    lines: list[str] = []
+    sep = "=" * 68
+    dash = "-" * 68
+
+    sprints = data.get("sprints", [])
+    overall_trend = data.get("overall_trend", "stable")
+
+    lines.append(sep)
+    lines.append(f"CROSS-SPRINT REPORT ({len(sprints)} sprints)")
+    lines.append(f"Overall trend: {overall_trend}")
+    lines.append(sep)
+
+    if not sprints:
+        lines.append("(No sprints found)")
+        lines.append(sep)
+        return "\n".join(lines)
+
+    # Sprint comparison table
+    lines.append("")
+    lines.append(
+        f"{'Sprint':<14} {'Dates':<25} {'Weighted':>8} {'Unwgtd':>7} {'Delta':>6}"
+    )
+    lines.append(dash)
+
+    for s in sprints:
+        dates = f"{s['start_date']} -> {s['end_date']}"
+        delta_str = ""
+        if s["trend_delta"] is not None:
+            d = s["trend_delta"]
+            delta_str = f"+{d}%" if d >= 0 else f"{d}%"
+        lines.append(
+            f"{s['sprint_id']:<14} {dates:<25} {s['weighted_score']:>7}% "
+            f"{s['unweighted_score']:>6}% {delta_str:>6}"
+        )
+
+    lines.append(dash)
+
+    # Per-sprint category breakdown
+    for s in sprints:
+        cat_scores = s.get("category_scores", [])
+        if cat_scores:
+            lines.append("")
+            lines.append(f"  {s['sprint_id']} categories:")
+            for cat in cat_scores:
+                lines.append(
+                    f"    {cat['category']:<20} {cat['weighted_score']:>3}%"
+                )
+
+    # Per-sprint habit completions
+    lines.append("")
+    lines.append("HABIT COMPLETIONS")
+    lines.append(dash)
+
+    # Collect all habit IDs across sprints
+    all_habit_ids = []
+    habit_names = {}
+    for s in sprints:
+        for h in s.get("habit_completions", []):
+            if h["habit_id"] not in habit_names:
+                all_habit_ids.append(h["habit_id"])
+                habit_names[h["habit_id"]] = h["name"]
+
+    # Build per-habit row: habit name then pct per sprint
+    if all_habit_ids:
+        # Header
+        sprint_labels = [s["sprint_id"][:10] for s in sprints]
+        hdr = f"{'Habit':<22}" + "".join(f"{lbl:>12}" for lbl in sprint_labels)
+        lines.append(hdr)
+        lines.append(dash)
+
+        for hid in all_habit_ids:
+            name = habit_names[hid]
+            if len(name) > 21:
+                name = name[:21]
+            row = f"{name:<22}"
+            for s in sprints:
+                found = None
+                for h in s.get("habit_completions", []):
+                    if h["habit_id"] == hid:
+                        found = h
+                        break
+                if found:
+                    row += f"{found['completion_pct']:>11}%"
+                else:
+                    row += f"{'—':>12}"
+            lines.append(row)
+
+        lines.append(dash)
+
+    lines.append(sep)
+    return "\n".join(lines)
+
+
 FORMATTERS: dict[str, callable] = {
     "sprint_dashboard": format_sprint_dashboard,
     "get_week_view": format_week_view,
@@ -589,4 +688,5 @@ FORMATTERS: dict[str, callable] = {
     "habit_report": format_habit_report,
     "daily_score": format_daily_score,
     "category_report": format_category_report,
+    "cross_sprint_report": format_cross_sprint_report,
 }

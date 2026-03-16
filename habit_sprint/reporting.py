@@ -823,6 +823,170 @@ def category_report(conn: sqlite3.Connection, payload: dict) -> dict:
     }
 
 
+def cross_sprint_report(conn: sqlite3.Connection, payload: dict) -> dict:
+    """Compare metrics across multiple sprints.
+
+    Payload
+    -------
+    limit : int, optional
+        Maximum number of sprints to include (most recent first).
+        Default: all sprints.
+    habit_id : str, optional
+        Filter results to a single habit.
+
+    Returns
+    -------
+    dict with ``sprints`` (array of sprint summaries) and ``overall_trend``.
+    """
+    limit = payload.get("limit")
+    habit_id_filter = payload.get("habit_id")
+
+    # Validate habit_id if provided
+    if habit_id_filter:
+        row = conn.execute(
+            "SELECT * FROM habits WHERE id = ?", (habit_id_filter,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Habit not found: {habit_id_filter}")
+
+    # Fetch sprints ordered by start_date ascending
+    if limit:
+        sprint_rows = conn.execute(
+            "SELECT * FROM sprints ORDER BY start_date DESC LIMIT ?", (limit,)
+        ).fetchall()
+        sprint_rows = list(reversed(sprint_rows))  # back to chronological
+    else:
+        sprint_rows = conn.execute(
+            "SELECT * FROM sprints ORDER BY start_date"
+        ).fetchall()
+
+    if not sprint_rows:
+        return {"sprints": [], "overall_trend": "stable"}
+
+    sprint_summaries = []
+    prev_weighted_score = None
+
+    for sprint_row in sprint_rows:
+        sprint = dict(sprint_row)
+        sprint_id = sprint["id"]
+        start = date.fromisoformat(sprint["start_date"])
+        end = date.fromisoformat(sprint["end_date"])
+        total_days = (end - start).days + 1
+        num_weeks = math.ceil(total_days / 7)
+
+        # Get habits for this sprint
+        habits = _get_sprint_habits(conn, sprint_id)
+        habits = _get_effective_goals(conn, sprint_id, habits)
+
+        # Filter to single habit if requested
+        if habit_id_filter:
+            habits = [h for h in habits if h["id"] == habit_id_filter]
+
+        total_weighted_actual = 0
+        total_weighted_target = 0
+        total_actual = 0
+        total_target = 0
+        categories: dict[str, dict] = {}
+        habit_completions = []
+
+        for h in habits:
+            target_entries = h["target_per_week"] * num_weeks
+            actual_entries = conn.execute(
+                "SELECT COUNT(*) FROM entries WHERE habit_id = ? "
+                "AND date >= ? AND date <= ? AND value > 0",
+                (h["id"], sprint["start_date"], sprint["end_date"]),
+            ).fetchone()[0]
+
+            completion_pct = (
+                round(actual_entries / target_entries * 100)
+                if target_entries > 0 else 0
+            )
+
+            total_weighted_actual += actual_entries * h["weight"]
+            total_weighted_target += target_entries * h["weight"]
+            total_actual += actual_entries
+            total_target += target_entries
+
+            habit_completions.append({
+                "habit_id": h["id"],
+                "name": h["name"],
+                "actual": actual_entries,
+                "target": target_entries,
+                "completion_pct": completion_pct,
+            })
+
+            # Accumulate per-category
+            cat = h["category"]
+            if cat not in categories:
+                categories[cat] = {"weighted_actual": 0, "weighted_target": 0}
+            categories[cat]["weighted_actual"] += actual_entries * h["weight"]
+            categories[cat]["weighted_target"] += target_entries * h["weight"]
+
+        weighted_score = (
+            round(total_weighted_actual / total_weighted_target * 100)
+            if total_weighted_target > 0 else 0
+        )
+        unweighted_score = (
+            round(total_actual / total_target * 100)
+            if total_target > 0 else 0
+        )
+
+        # Per-category scores
+        category_scores = []
+        for cat_name, cat_data in categories.items():
+            wa = cat_data["weighted_actual"]
+            wt = cat_data["weighted_target"]
+            category_scores.append({
+                "category": cat_name,
+                "weighted_score": round(wa / wt * 100) if wt > 0 else 0,
+            })
+
+        # Trend delta vs previous sprint
+        trend_delta = None
+        if prev_weighted_score is not None:
+            trend_delta = weighted_score - prev_weighted_score
+
+        # Parse focus_goals
+        focus_goals = sprint.get("focus_goals", "[]")
+        if isinstance(focus_goals, str):
+            import json as _json
+            focus_goals = _json.loads(focus_goals)
+
+        sprint_summaries.append({
+            "sprint_id": sprint_id,
+            "start_date": sprint["start_date"],
+            "end_date": sprint["end_date"],
+            "theme": sprint["theme"],
+            "status": sprint["status"],
+            "weighted_score": weighted_score,
+            "unweighted_score": unweighted_score,
+            "category_scores": category_scores,
+            "habit_completions": habit_completions,
+            "trend_delta": trend_delta,
+        })
+
+        prev_weighted_score = weighted_score
+
+    # Overall trend assessment
+    if len(sprint_summaries) < 2:
+        overall_trend = "stable"
+    else:
+        scores = [s["weighted_score"] for s in sprint_summaries]
+        # Compare last score to first score
+        diff = scores[-1] - scores[0]
+        if diff > 5:
+            overall_trend = "improving"
+        elif diff < -5:
+            overall_trend = "declining"
+        else:
+            overall_trend = "stable"
+
+    return {
+        "sprints": sprint_summaries,
+        "overall_trend": overall_trend,
+    }
+
+
 def sprint_dashboard(conn: sqlite3.Connection, payload: dict) -> dict:
     sprint_id = payload.get("sprint_id")
     week = payload.get("week")  # 1 or 2, optional
