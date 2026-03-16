@@ -1135,3 +1135,110 @@ class TestHeatmapAPI:
         assert "All Habits" in resp.text
         assert "Exercise" in resp.text
         assert "Read" in resp.text
+
+
+class TestHabitTrendAPI:
+    """Test the habit trend API endpoint (task 9.6)."""
+
+    def test_trend_api_missing_habit_id(self, client):
+        """GET /api/reports/habit-trend without habit_id returns 400."""
+        resp = client.get("/api/reports/habit-trend")
+        assert resp.status_code == 400
+        assert resp.json()["error"] == "habit_id is required"
+
+    def test_trend_api_unknown_habit(self, seeded_client):
+        """GET /api/reports/habit-trend?habit_id=nonexistent returns 404."""
+        resp = seeded_client.get("/api/reports/habit-trend?habit_id=nonexistent")
+        assert resp.status_code == 404
+        assert resp.json()["error"] == "Habit not found"
+
+    def test_trend_api_no_entries(self, seeded_client):
+        """Returns empty weeks when habit has no entries."""
+        resp = seeded_client.get("/api/reports/habit-trend?habit_id=exercise")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "success"
+        assert body["data"]["habit_id"] == "exercise"
+        assert body["data"]["habit_name"] == "Exercise"
+        assert body["data"]["weeks"] == []
+        assert body["data"]["rolling_average"] == []
+
+    def test_trend_api_with_entries(self, seeded_client):
+        """Returns weekly completion data when entries exist."""
+        # Log entries across two weeks within the sprint (2026-03-02 to 2026-03-15)
+        for day in ["2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06"]:
+            seeded_client.post("/api/log", json={
+                "habit_id": "exercise", "date": day, "value": 1,
+            })
+        for day in ["2026-03-09", "2026-03-10", "2026-03-11"]:
+            seeded_client.post("/api/log", json={
+                "habit_id": "exercise", "date": day, "value": 1,
+            })
+
+        resp = seeded_client.get("/api/reports/habit-trend?habit_id=exercise")
+        assert resp.status_code == 200
+        body = resp.json()
+        data = body["data"]
+        assert data["habit_id"] == "exercise"
+        assert len(data["weeks"]) == 2
+        # Week 1 (Mon 2026-03-02): 5 days logged, target 5 → 100%
+        assert data["weeks"][0]["completion_pct"] == 100
+        assert data["weeks"][0]["actual_days"] == 5
+        # Week 2 (Mon 2026-03-09): 3 days logged, target 5 → 60%
+        assert data["weeks"][1]["completion_pct"] == 60
+        assert data["weeks"][1]["actual_days"] == 3
+
+    def test_trend_api_rolling_average(self, seeded_client):
+        """Rolling average is computed correctly."""
+        # Log one entry per week for a few weeks
+        for day in ["2026-03-02", "2026-03-09"]:
+            seeded_client.post("/api/log", json={
+                "habit_id": "exercise", "date": day, "value": 1,
+            })
+
+        resp = seeded_client.get("/api/reports/habit-trend?habit_id=exercise")
+        data = resp.json()["data"]
+        assert len(data["rolling_average"]) == len(data["weeks"])
+        # First value equals first week's pct
+        assert data["rolling_average"][0] == data["weeks"][0]["completion_pct"]
+
+    def test_trend_api_includes_sprint_boundaries(self, seeded_client):
+        """Sprint boundaries are included in the response."""
+        seeded_client.post("/api/log", json={
+            "habit_id": "exercise", "date": "2026-03-05", "value": 1,
+        })
+        resp = seeded_client.get("/api/reports/habit-trend?habit_id=exercise")
+        data = resp.json()["data"]
+        assert len(data["sprints"]) >= 1
+        sprint = data["sprints"][0]
+        assert sprint["sprint_id"]  # has an ID
+        assert "start_date" in sprint
+        assert "end_date" in sprint
+        assert "label" in sprint
+
+    def test_trend_api_completion_capped_at_100(self, seeded_client):
+        """Completion percentage should not exceed 100%."""
+        # Log 7 days in one week for a habit with target_per_week=5
+        for day in ["2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05",
+                     "2026-03-06", "2026-03-07", "2026-03-08"]:
+            seeded_client.post("/api/log", json={
+                "habit_id": "exercise", "date": day, "value": 1,
+            })
+        resp = seeded_client.get("/api/reports/habit-trend?habit_id=exercise")
+        data = resp.json()["data"]
+        assert data["weeks"][0]["completion_pct"] == 100
+
+    def test_trends_tab_shows_habit_dropdown(self, seeded_client):
+        """Trends tab includes habit selection dropdown."""
+        resp = seeded_client.get("/reports?tab=trends")
+        assert resp.status_code == 200
+        assert "trend-habit-select" in resp.text
+        assert "Select a habit" in resp.text
+        assert "Exercise" in resp.text
+        assert "Read" in resp.text
+
+    def test_trends_tab_has_chart_canvas(self, seeded_client):
+        """Trends tab includes the chart canvas element."""
+        resp = seeded_client.get("/reports?tab=trends")
+        assert resp.status_code == 200
+        assert 'id="trends-chart"' in resp.text

@@ -843,9 +843,9 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         valid_tabs = {"sprint-comparison", "heatmap", "category-balance", "trends", "streaks"}
         active_tab = tab if tab in valid_tabs else "sprint-comparison"
 
-        # For heatmap tab, load habit list for the dropdown
+        # For heatmap and trends tabs, load habit list for the dropdown
         habits = []
-        if active_tab == "heatmap":
+        if active_tab in ("heatmap", "trends"):
             result = execute(
                 {"action": "list_habits", "payload": {"include_archived": False}},
                 request.app.state.db_path,
@@ -886,6 +886,117 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
 
         data = {row["date"]: row["total"] for row in rows}
         return JSONResponse({"status": "success", "data": data, "error": None})
+
+    @app.get("/api/reports/habit-trend")
+    async def api_habit_trend(request: Request, habit_id: Optional[str] = None):
+        """Return weekly completion % data points for a habit across sprints.
+
+        Query params:
+            habit_id: required habit ID
+        Returns JSON with weekly data points and sprint boundaries.
+        """
+        if not habit_id:
+            return JSONResponse(
+                {"status": "error", "data": None, "error": "habit_id is required"},
+                status_code=400,
+            )
+
+        conn = get_connection(request.app.state.db_path)
+
+        # Validate habit exists
+        habit_row = conn.execute(
+            "SELECT id, name, target_per_week FROM habits WHERE id = ?", (habit_id,)
+        ).fetchone()
+        if habit_row is None:
+            return JSONResponse(
+                {"status": "error", "data": None, "error": "Habit not found"},
+                status_code=404,
+            )
+
+        target_per_week = habit_row["target_per_week"]
+
+        # Get all sprints ordered chronologically
+        sprint_rows = conn.execute(
+            "SELECT id, start_date, end_date, theme FROM sprints ORDER BY start_date"
+        ).fetchall()
+
+        # Determine the overall date range from entries for this habit
+        range_row = conn.execute(
+            "SELECT MIN(date) as min_date, MAX(date) as max_date "
+            "FROM entries WHERE habit_id = ? AND value > 0",
+            (habit_id,),
+        ).fetchone()
+
+        if not range_row or not range_row["min_date"]:
+            return JSONResponse({
+                "status": "success",
+                "data": {
+                    "habit_id": habit_id,
+                    "habit_name": habit_row["name"],
+                    "weeks": [],
+                    "sprints": [],
+                    "rolling_average": [],
+                },
+                "error": None,
+            })
+
+        min_date = date.fromisoformat(range_row["min_date"])
+        max_date = date.fromisoformat(range_row["max_date"])
+
+        # Align to Monday boundaries
+        week_start = min_date - timedelta(days=min_date.weekday())
+        last_week_start = max_date - timedelta(days=max_date.weekday())
+
+        # Build weekly data points
+        weeks = []
+        current = week_start
+        while current <= last_week_start:
+            week_end = current + timedelta(days=6)
+            actual = conn.execute(
+                "SELECT COUNT(*) FROM entries WHERE habit_id = ? "
+                "AND date >= ? AND date <= ? AND value > 0",
+                (habit_id, current.isoformat(), week_end.isoformat()),
+            ).fetchone()[0]
+            pct = min(round(actual / target_per_week * 100), 100) if target_per_week > 0 else 0
+            weeks.append({
+                "week_start": current.isoformat(),
+                "week_end": week_end.isoformat(),
+                "actual_days": actual,
+                "target_per_week": target_per_week,
+                "completion_pct": pct,
+            })
+            current += timedelta(days=7)
+
+        # Sprint boundaries
+        sprints = []
+        for sr in sprint_rows:
+            sprints.append({
+                "sprint_id": sr["id"],
+                "start_date": sr["start_date"],
+                "end_date": sr["end_date"],
+                "label": sr["theme"] or sr["id"],
+            })
+
+        # 4-week rolling average
+        rolling_average = []
+        pcts = [w["completion_pct"] for w in weeks]
+        window = 4
+        for i in range(len(pcts)):
+            start_idx = max(0, i - window + 1)
+            avg = round(sum(pcts[start_idx:i + 1]) / (i - start_idx + 1), 1)
+            rolling_average.append(avg)
+
+        return JSONResponse({
+            "status": "success",
+            "data": {
+                "habit_id": habit_id,
+                "habit_name": habit_row["name"],
+                "weeks": weeks,
+                "sprints": sprints,
+                "rolling_average": rolling_average,
+            },
+            "error": None,
+        })
 
     @app.post("/sprints/{sprint_id}/archive")
     async def archive_sprint(request: Request, sprint_id: str):
