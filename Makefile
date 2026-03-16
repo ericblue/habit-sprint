@@ -41,7 +41,7 @@ install: venv ## Install habit-sprint in editable mode
 	@echo "  $(HABIT_SPRINT) --help"
 
 install-global: ## Install habit-sprint globally (adds habit-sprint to PATH)
-	pip install -e .
+	$(PYTHON) -m pip install -e .
 	@echo ""
 	@echo "habit-sprint installed globally. Verify with:"
 	@echo "  which habit-sprint"
