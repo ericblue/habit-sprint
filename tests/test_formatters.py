@@ -1074,6 +1074,7 @@ class TestFormattersDispatcher:
             "daily_score",
             "category_report",
             "cross_sprint_report",
+            "progress_summary",
         }
         assert set(FORMATTERS.keys()) == expected
 

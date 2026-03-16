@@ -207,6 +207,12 @@ ACTION_SCHEMAS = {
         "limit": {"type": "int", "required": False, "min": 1},
         "habit_id": {"type": "str", "required": False},
     },
+    "streak_leaderboard": {
+        "sprint_id": {"type": "str", "required": False},
+    },
+    "progress_summary": {
+        "sprint_id": {"type": "str", "required": False},
+    },
 }
 
 

@@ -220,10 +220,61 @@
     <canvas id="trends-chart"></canvas>
   </div>
   {% elif active_tab == 'streaks' %}
-  <div class="report-placeholder">
-    <h2>Streaks</h2>
-    <p>See your longest streaks and current streak standings. Coming soon.</p>
+  <div class="report-section">
+    <h2>Streak Leaderboard</h2>
+    <p>See your longest streaks and current streak standings.</p>
+    <div id="streak-leaderboard">
+      <table class="streak-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Habit</th>
+            <th>Category</th>
+            <th>Current Streak</th>
+            <th>Longest Streak</th>
+            <th>Total Check-ins</th>
+          </tr>
+        </thead>
+        <tbody id="streak-tbody">
+          <tr><td colspan="6" style="text-align:center; padding:1rem;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+  <script>
+    fetch('/api/streak-leaderboard')
+      .then(r => r.json())
+      .then(result => {
+        if (result.status !== 'success') {
+          document.getElementById('streak-tbody').innerHTML =
+            '<tr><td colspan="6" style="text-align:center">' + (result.error || 'Error loading data') + '</td></tr>';
+          return;
+        }
+        const habits = result.data.habits;
+        if (!habits.length) {
+          document.getElementById('streak-tbody').innerHTML =
+            '<tr><td colspan="6" style="text-align:center">No habits found</td></tr>';
+          return;
+        }
+        let html = '';
+        habits.forEach((h, i) => {
+          const streakIcon = h.current_streak >= 7 ? '🔥' : h.current_streak >= 3 ? '⚡' : h.current_streak > 0 ? '✨' : '';
+          html += '<tr>' +
+            '<td>' + (i + 1) + '</td>' +
+            '<td>' + h.name + '</td>' +
+            '<td>' + h.category + '</td>' +
+            '<td>' + streakIcon + ' ' + h.current_streak + ' day' + (h.current_streak !== 1 ? 's' : '') + '</td>' +
+            '<td>' + h.longest_streak + ' day' + (h.longest_streak !== 1 ? 's' : '') + '</td>' +
+            '<td>' + h.total_checkins + '</td>' +
+            '</tr>';
+        });
+        document.getElementById('streak-tbody').innerHTML = html;
+      })
+      .catch(() => {
+        document.getElementById('streak-tbody').innerHTML =
+          '<tr><td colspan="6" style="text-align:center">Error loading streak data</td></tr>';
+      });
+  </script>
   {% endif %}
 </div>
 {% endblock %}

@@ -823,6 +823,20 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
 
     # --- Reports page ---
 
+    @app.get("/api/streak-leaderboard")
+    async def api_streak_leaderboard(request: Request, sprint_id: Optional[str] = None):
+        payload: dict = {}
+        if sprint_id is not None:
+            payload["sprint_id"] = sprint_id
+        return _execute_action(request.app.state.db_path, "streak_leaderboard", payload)
+
+    @app.get("/api/progress-summary")
+    async def api_progress_summary(request: Request, sprint_id: Optional[str] = None):
+        payload: dict = {}
+        if sprint_id is not None:
+            payload["sprint_id"] = sprint_id
+        return _execute_action(request.app.state.db_path, "progress_summary", payload)
+
     @app.get("/reports", response_class=HTMLResponse)
     async def reports(request: Request, tab: Optional[str] = None):
         """Render the reports page with tab navigation."""

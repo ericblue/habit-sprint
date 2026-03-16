@@ -681,6 +681,75 @@ def format_cross_sprint_report(data: dict) -> str:
     return "\n".join(lines)
 
 
+def format_progress_summary(data: dict) -> str:
+    """Render progress_summary data as markdown for LLM consumption."""
+    lines: list[str] = []
+    sep = "=" * 68
+    dash = "-" * 68
+
+    lines.append(sep)
+    lines.append(
+        f"PROGRESS SUMMARY (Sprint: {data['sprint_id']})"
+    )
+    lines.append(
+        f"Overall Score: {data['overall_score']}%  |  Trend: {data['overall_trend']}"
+    )
+    lines.append(sep)
+
+    # Strongest habits
+    lines.append("")
+    lines.append("TOP 3 STRONGEST HABITS")
+    lines.append(dash)
+    for h in data.get("strongest_habits", []):
+        lines.append(f"  {h['name']:<30} {h['completion_pct']:>3}%")
+    if not data.get("strongest_habits"):
+        lines.append("  (none)")
+    lines.append(dash)
+
+    # Weakest habits
+    lines.append("")
+    lines.append("TOP 3 WEAKEST HABITS")
+    lines.append(dash)
+    for h in data.get("weakest_habits", []):
+        lines.append(f"  {h['name']:<30} {h['completion_pct']:>3}%")
+    if not data.get("weakest_habits"):
+        lines.append("  (none)")
+    lines.append(dash)
+
+    # Category balance
+    lines.append("")
+    lines.append("CATEGORY BALANCE")
+    lines.append(dash)
+    for cat in data.get("category_balance", []):
+        lines.append(f"  {cat['category']:<20} {cat['weighted_score']:>3}%")
+    if not data.get("category_balance"):
+        lines.append("  (none)")
+    lines.append(dash)
+
+    # Active streaks
+    lines.append("")
+    lines.append("ACTIVE STREAKS")
+    lines.append(dash)
+    for s in data.get("active_streaks", []):
+        lines.append(f"  {s['name']:<30} {s['current_streak']:>3} days")
+    if not data.get("active_streaks"):
+        lines.append("  (none)")
+    lines.append(dash)
+
+    # Recommendations
+    recs = data.get("recommendations", [])
+    if recs:
+        lines.append("")
+        lines.append("RECOMMENDATIONS")
+        lines.append(dash)
+        for r in recs:
+            lines.append(f"  - {r}")
+        lines.append(dash)
+
+    lines.append(sep)
+    return "\n".join(lines)
+
+
 FORMATTERS: dict[str, callable] = {
     "sprint_dashboard": format_sprint_dashboard,
     "get_week_view": format_week_view,
@@ -689,4 +758,5 @@ FORMATTERS: dict[str, callable] = {
     "daily_score": format_daily_score,
     "category_report": format_category_report,
     "cross_sprint_report": format_cross_sprint_report,
+    "progress_summary": format_progress_summary,
 }
