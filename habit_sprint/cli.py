@@ -71,6 +71,7 @@ def main() -> int:
         # Set db_path as env var so the app factory can pick it up on reload
         os.environ["HABIT_SPRINT_DB"] = args.db
         print(f"Starting Habit Sprint web UI at http://{args.host}:{args.port}")
+        print(f"Database: {args.db}")
         uvicorn.run(
             "habit_sprint.web:app",
             host=args.host,

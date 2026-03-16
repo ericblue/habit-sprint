@@ -19,5 +19,6 @@ build/
 *.swo
 
 data
-habit-sprint.db
-habits.db
+*.db
+*.db-shm
+*.db-wal
