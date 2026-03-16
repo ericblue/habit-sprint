@@ -507,4 +507,47 @@ table.sprint-grid .toggle-cell { position: relative; }
   .card-meta { gap: 0.5rem 1rem; }
 
   .page-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .report-tabs { flex-wrap: wrap; }
+}
+
+/* === Report Tabs === */
+.report-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border-color, #dee2e6);
+  margin-bottom: 1.5rem;
+}
+.report-tab {
+  padding: 0.6rem 1.2rem;
+  text-decoration: none;
+  color: var(--text-secondary, #6c757d);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.9rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+.report-tab:hover {
+  color: var(--text-primary, #1a1a2e);
+}
+.report-tab.active {
+  color: var(--accent, #6c63ff);
+  border-bottom-color: var(--accent, #6c63ff);
+  font-weight: 600;
+}
+.report-content {
+  min-height: 300px;
+}
+.report-placeholder {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--text-secondary, #6c757d);
+}
+.report-placeholder h2 {
+  margin-bottom: 0.5rem;
+  color: var(--text-primary, #1a1a2e);
+}
+.report-placeholder canvas,
+.report-placeholder #cal-heatmap {
+  max-width: 800px;
+  margin: 1.5rem auto 0;
 }

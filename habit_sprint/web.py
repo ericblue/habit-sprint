@@ -821,6 +821,19 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         )
         return RedirectResponse(url=f"/sprints/{sprint_id}/habits?msg=Habit+removed+from+sprint", status_code=303)
 
+    # --- Reports page ---
+
+    @app.get("/reports", response_class=HTMLResponse)
+    async def reports(request: Request, tab: Optional[str] = None):
+        """Render the reports page with tab navigation."""
+        valid_tabs = {"sprint-comparison", "heatmap", "category-balance", "trends", "streaks"}
+        active_tab = tab if tab in valid_tabs else "sprint-comparison"
+        return templates.TemplateResponse("reports.html", {
+            "request": request,
+            "active_nav": "reports",
+            "active_tab": active_tab,
+        })
+
     @app.post("/sprints/{sprint_id}/archive")
     async def archive_sprint(request: Request, sprint_id: str):
         execute({"action": "archive_sprint", "payload": {"sprint_id": sprint_id}}, request.app.state.db_path)

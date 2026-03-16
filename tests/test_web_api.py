@@ -894,3 +894,69 @@ class TestDashboardProgressBars:
         assert resp.status_code == 200
         assert "category-row" in resp.text
         assert "progress-sm" in resp.text or "progress-inline" in resp.text
+
+
+# ── Epic 9 tests ─────────────────────────────────────────────────────────
+
+
+class TestReportsPage:
+    """Test reports page layout and navigation (task 9.1)."""
+
+    def test_reports_route_returns_200(self, client):
+        """GET /reports returns 200."""
+        resp = client.get("/reports")
+        assert resp.status_code == 200
+
+    def test_reports_page_has_tab_navigation(self, client):
+        """Reports page includes all five report tabs."""
+        resp = client.get("/reports")
+        assert resp.status_code == 200
+        assert "Sprint Comparison" in resp.text
+        assert "Habit Heatmap" in resp.text
+        assert "Category Balance" in resp.text
+        assert "Trends" in resp.text
+        assert "Streaks" in resp.text
+
+    def test_reports_default_tab_is_sprint_comparison(self, client):
+        """Default tab is sprint-comparison when no tab param given."""
+        resp = client.get("/reports")
+        assert resp.status_code == 200
+        # The sprint-comparison tab should be active
+        assert 'report-tab active' in resp.text
+        assert "Sprint Comparison" in resp.text
+
+    def test_reports_tab_parameter(self, client):
+        """Tab query parameter switches the active view."""
+        for tab in ["sprint-comparison", "heatmap", "category-balance", "trends", "streaks"]:
+            resp = client.get(f"/reports?tab={tab}")
+            assert resp.status_code == 200
+
+    def test_reports_invalid_tab_defaults(self, client):
+        """Invalid tab parameter defaults to sprint-comparison."""
+        resp = client.get("/reports?tab=invalid")
+        assert resp.status_code == 200
+        assert "Sprint Comparison" in resp.text
+
+    def test_reports_loads_chartjs(self, client):
+        """Reports page loads Chart.js via CDN."""
+        resp = client.get("/reports")
+        assert "chart.js" in resp.text.lower() or "Chart.js" in resp.text
+
+    def test_reports_loads_cal_heatmap(self, client):
+        """Reports page loads cal-heatmap via CDN."""
+        resp = client.get("/reports")
+        assert "cal-heatmap" in resp.text
+
+    def test_reports_nav_active(self, client):
+        """Navigation highlights Reports as active on /reports page."""
+        resp = client.get("/reports")
+        # The nav link for Reports should have the active class
+        assert 'href="/reports"' in resp.text
+        # Check that "active" appears near the reports link
+        assert 'class="active"' in resp.text or "active" in resp.text
+
+    def test_reports_heatmap_tab_shows_cal_heatmap_container(self, client):
+        """Heatmap tab includes the cal-heatmap container div."""
+        resp = client.get("/reports?tab=heatmap")
+        assert resp.status_code == 200
+        assert "cal-heatmap" in resp.text

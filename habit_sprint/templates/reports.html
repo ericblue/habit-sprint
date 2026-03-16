@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Reports — Habit Sprint{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link rel="stylesheet" href="https://unpkg.com/cal-heatmap/dist/cal-heatmap.css">
+<script src="https://unpkg.com/cal-heatmap/dist/cal-heatmap.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1>Reports</h1>
+
+<div class="report-tabs">
+  <a href="/reports?tab=sprint-comparison" class="report-tab {% if active_tab == 'sprint-comparison' %}active{% endif %}">Sprint Comparison</a>
+  <a href="/reports?tab=heatmap" class="report-tab {% if active_tab == 'heatmap' %}active{% endif %}">Habit Heatmap</a>
+  <a href="/reports?tab=category-balance" class="report-tab {% if active_tab == 'category-balance' %}active{% endif %}">Category Balance</a>
+  <a href="/reports?tab=trends" class="report-tab {% if active_tab == 'trends' %}active{% endif %}">Trends</a>
+  <a href="/reports?tab=streaks" class="report-tab {% if active_tab == 'streaks' %}active{% endif %}">Streaks</a>
+</div>
+
+<div class="report-content">
+  {% if active_tab == 'sprint-comparison' %}
+  <div class="report-placeholder">
+    <h2>Sprint Comparison</h2>
+    <p>Compare weighted scores across sprints. Coming soon.</p>
+    <canvas id="sprint-comparison-chart"></canvas>
+  </div>
+  {% elif active_tab == 'heatmap' %}
+  <div class="report-placeholder">
+    <h2>Habit Heatmap</h2>
+    <p>GitHub-style contribution calendar for your habits. Coming soon.</p>
+    <div id="cal-heatmap"></div>
+  </div>
+  {% elif active_tab == 'category-balance' %}
+  <div class="report-placeholder">
+    <h2>Category Balance</h2>
+    <p>See how your effort is distributed across categories. Coming soon.</p>
+    <canvas id="category-balance-chart"></canvas>
+  </div>
+  {% elif active_tab == 'trends' %}
+  <div class="report-placeholder">
+    <h2>Trends</h2>
+    <p>Track per-habit completion trends over time. Coming soon.</p>
+    <canvas id="trends-chart"></canvas>
+  </div>
+  {% elif active_tab == 'streaks' %}
+  <div class="report-placeholder">
+    <h2>Streaks</h2>
+    <p>See your longest streaks and current streak standings. Coming soon.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

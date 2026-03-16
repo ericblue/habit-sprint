@@ -681,12 +681,12 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 ### Task Details
 
 **9.1 - Reports page layout + Chart.js/cal-heatmap integration**
-- [ ] GET `/reports` route returns reports page
-- [ ] Base reports template with tab navigation (Sprint Comparison, Habit Heatmap, Category Balance, Trends, Streaks)
-- [ ] Chart.js loaded via CDN (only on reports page)
-- [ ] cal-heatmap loaded via CDN for heatmap view
-- [ ] Navigation bar highlights "Reports" as active
-- [ ] Tests for route returning 200
+- [x] GET `/reports` route returns reports page
+- [x] Base reports template with tab navigation (Sprint Comparison, Habit Heatmap, Category Balance, Trends, Streaks)
+- [x] Chart.js loaded via CDN (only on reports page)
+- [x] cal-heatmap loaded via CDN for heatmap view
+- [x] Navigation bar highlights "Reports" as active
+- [x] Tests for route returning 200
 
 **9.2 - Sprint comparison report (table + bar chart)**
 - [ ] GET `/reports/sprints` (or tab within `/reports`) renders sprint comparison
