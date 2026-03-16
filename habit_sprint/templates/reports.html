@@ -332,6 +332,124 @@
 
   {% elif active_tab == 'trends' %}
   <div class="report-section">
+    <h2>Habit Trend</h2>
+    <p>Track per-habit weekly completion % over time.</p>
+    <div style="margin-bottom: 1rem;">
+      <label for="trend-habit-select"><strong>Habit:</strong></label>
+      <select id="trend-habit-select" style="margin-left: 0.5rem; padding: 0.3rem;">
+        <option value="">— Select a habit —</option>
+        {% for habit in habits %}
+        <option value="{{ habit.id }}">{{ habit.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="trend-empty" style="display:none;">
+      <p>No data available for this habit yet.</p>
+    </div>
+    <div style="max-width: 800px; margin: 1.5rem auto;">
+      <canvas id="trends-chart"></canvas>
+    </div>
+  </div>
+  <script>
+  (function() {
+    const select = document.getElementById('trend-habit-select');
+    const canvas = document.getElementById('trends-chart');
+    const emptyMsg = document.getElementById('trend-empty');
+    let chart = null;
+
+    select.addEventListener('change', function() {
+      const habitId = this.value;
+      if (!habitId) {
+        if (chart) { chart.destroy(); chart = null; }
+        emptyMsg.style.display = 'none';
+        return;
+      }
+      fetch('/api/reports/habit-trend?habit_id=' + encodeURIComponent(habitId))
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+          if (chart) { chart.destroy(); chart = null; }
+          const d = result.data;
+          if (!d.weeks || d.weeks.length === 0) {
+            emptyMsg.style.display = '';
+            return;
+          }
+          emptyMsg.style.display = 'none';
+
+          var labels = d.weeks.map(function(w) { return w.week_start; });
+          var pcts = d.weeks.map(function(w) { return w.completion_pct; });
+          var rolling = d.rolling_average;
+
+          // Build sprint boundary annotations
+          var annotations = {};
+          d.sprints.forEach(function(s, i) {
+            annotations['sprint-start-' + i] = {
+              type: 'line',
+              xMin: s.start_date,
+              xMax: s.start_date,
+              borderColor: 'rgba(100,100,100,0.4)',
+              borderWidth: 1,
+              borderDash: [5, 5],
+              label: {
+                display: true,
+                content: s.label,
+                position: 'start',
+                font: { size: 10 },
+                backgroundColor: 'rgba(100,100,100,0.7)',
+              }
+            };
+          });
+
+          var ctx = canvas.getContext('2d');
+          chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: 'Weekly Completion %',
+                  data: pcts,
+                  borderColor: '#4caf50',
+                  backgroundColor: 'rgba(76,175,80,0.1)',
+                  fill: true,
+                  tension: 0.3,
+                  pointRadius: 4,
+                },
+                {
+                  label: 'Rolling Average',
+                  data: rolling,
+                  borderColor: '#ff9800',
+                  borderDash: [6, 3],
+                  fill: false,
+                  tension: 0.3,
+                  pointRadius: 2,
+                }
+              ]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                x: {
+                  title: { display: true, text: 'Week Starting' }
+                },
+                y: {
+                  beginAtZero: true,
+                  max: 100,
+                  title: { display: true, text: 'Completion %' }
+                }
+              },
+              plugins: {
+                annotation: {
+                  annotations: annotations
+                }
+              }
+            }
+          });
+        });
+    });
+  })();
+  </script>
+
+  <div class="report-section" style="margin-top: 2rem;">
     <h2>Daily Score Trend</h2>
     <p>Track daily completion percentage within a sprint.</p>
 
@@ -345,13 +463,13 @@
       </select>
     </div>
 
-    <div id="trend-loading">Loading trend data…</div>
-    <div id="trend-empty" style="display:none;">
+    <div id="daily-trend-loading">Loading trend data…</div>
+    <div id="daily-trend-empty" style="display:none;">
       <p>No score data available for this sprint.</p>
     </div>
 
     <div style="max-width: 700px; margin: 1.5rem auto;">
-      <canvas id="trends-chart"></canvas>
+      <canvas id="daily-trends-chart"></canvas>
     </div>
   </div>
 
@@ -365,17 +483,17 @@
       let url = '/api/reports/daily-scores';
       if (sprintId) url += '?sprint_id=' + encodeURIComponent(sprintId);
 
-      document.getElementById('trend-loading').style.display = '';
-      document.getElementById('trend-empty').style.display = 'none';
+      document.getElementById('daily-trend-loading').style.display = '';
+      document.getElementById('daily-trend-empty').style.display = 'none';
 
       fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(result) {
-          document.getElementById('trend-loading').style.display = 'none';
+          document.getElementById('daily-trend-loading').style.display = 'none';
           const data = result.data || {};
           const scores = data.scores || [];
           if (scores.length === 0) {
-            document.getElementById('trend-empty').style.display = '';
+            document.getElementById('daily-trend-empty').style.display = '';
             return;
           }
 
@@ -384,7 +502,7 @@
 
           if (chartInstance) chartInstance.destroy();
 
-          const ctx = document.getElementById('trends-chart').getContext('2d');
+          const ctx = document.getElementById('daily-trends-chart').getContext('2d');
           chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
@@ -413,7 +531,7 @@
           });
         })
         .catch(function() {
-          document.getElementById('trend-loading').textContent = 'Failed to load data.';
+          document.getElementById('daily-trend-loading').textContent = 'Failed to load data.';
         });
     }
 

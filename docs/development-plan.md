@@ -661,7 +661,7 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - [ ] GitHub-style habit consistency heatmap for any habit or all habits combined
 - [ ] `cross_sprint_report` CLI action comparing metrics across sprints
 - [ ] Category balance chart and weekly score trend line chart
-- [ ] Per-habit trend line chart across sprints
+- [x] Per-habit trend line chart across sprints
 - [ ] Streak leaderboard and `progress_summary` CLI action for LLM
 - [ ] All new reports have passing tests
 
@@ -674,7 +674,7 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 | 9.3 | Habit consistency heatmap (GitHub-style calendar) | GitHub-style contribution heatmap for daily check-ins using cal-heatmap | High | L | 9.1 | Done <!-- vk:ERI-61 --> |
 | 9.4 | cross_sprint_report CLI action + formatter | New engine action comparing metrics across sprints, with markdown formatter | High | L | — | Done <!-- vk:ERI-62 --> |
 | 9.5 | Category balance chart + weekly score trend | Category balance radar/bar chart and daily completion % line chart | Medium | M | 9.1 | Done <!-- vk:ERI-63 --> |
-| 9.6 | Habit trend line chart (per-habit across sprints) | Per-habit weekly completion % line chart across sprints | Medium | M | 9.1 | <!-- vk:ERI-64 --> |
+| 9.6 | Habit trend line chart (per-habit across sprints) | Per-habit weekly completion % line chart across sprints | Medium | M | 9.1 | Done <!-- vk:ERI-64 --> |
 | 9.7 | Streak leaderboard + progress_summary CLI action | Streak ranking table and holistic `progress_summary` CLI action for LLM | Medium | M | 9.4 | Done <!-- vk:ERI-65 --> |
 | 9.8 | README refresh + screenshots | Update README to reflect web UI, reports, per-sprint goals, and current feature set; add screenshots of dashboard, reports, and habit detail pages | Medium | S | 9.7 | |
 
@@ -721,12 +721,12 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - [x] Tests for API endpoints
 
 **9.6 - Habit trend line chart (per-habit across sprints)**
-- [ ] Habit trend view with habit dropdown
-- [ ] Chart.js line chart of weekly completion % over time
-- [ ] Sprint boundaries marked with vertical lines or shading
-- [ ] Rolling average overlay
-- [ ] API endpoint `GET /api/reports/habit-trend?habit_id=X`
-- [ ] Tests for API endpoint
+- [x] Habit trend view with habit dropdown
+- [x] Chart.js line chart of weekly completion % over time
+- [x] Sprint boundaries marked with vertical lines or shading
+- [x] Rolling average overlay
+- [x] API endpoint `GET /api/reports/habit-trend?habit_id=X`
+- [x] Tests for API endpoint
 
 **9.7 - Streak leaderboard + progress_summary CLI action**
 - [x] Streak leaderboard table: habit name, current streak, longest streak, total check-ins
