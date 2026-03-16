@@ -671,7 +671,7 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 |----|-------|-------------|----------|------------|------------|--------|
 | 9.1 | Reports page layout + Chart.js/cal-heatmap integration | Create `/reports` route, base template with tab nav, load Chart.js + cal-heatmap via CDN | High | M | 6.7 | <!-- vk:ERI-59 --> |
 | 9.2 | Sprint comparison report (table + bar chart) | Sprint comparison view with table and Chart.js bar chart of weighted scores | High | L | 9.1 | <!-- vk:ERI-60 --> |
-| 9.3 | Habit consistency heatmap (GitHub-style calendar) | GitHub-style contribution heatmap for daily check-ins using cal-heatmap | High | L | 9.1 | <!-- vk:ERI-61 --> |
+| 9.3 | Habit consistency heatmap (GitHub-style calendar) | GitHub-style contribution heatmap for daily check-ins using cal-heatmap | High | L | 9.1 | Done <!-- vk:ERI-61 --> |
 | 9.4 | cross_sprint_report CLI action + formatter | New engine action comparing metrics across sprints, with markdown formatter | High | L | — | Done <!-- vk:ERI-62 --> |
 | 9.5 | Category balance chart + weekly score trend | Category balance radar/bar chart and daily completion % line chart | Medium | M | 9.1 | <!-- vk:ERI-63 --> |
 | 9.6 | Habit trend line chart (per-habit across sprints) | Per-habit weekly completion % line chart across sprints | Medium | M | 9.1 | <!-- vk:ERI-64 --> |
@@ -697,11 +697,11 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - [ ] Tests for route and API endpoint
 
 **9.3 - Habit consistency heatmap (GitHub-style calendar)**
-- [ ] GET `/reports/heatmap` (or tab within `/reports`) renders heatmap view
-- [ ] Dropdown to select specific habit or "All Habits"
-- [ ] cal-heatmap renders full-year calendar grid colored by check-in intensity
-- [ ] API endpoint `GET /api/reports/heatmap?habit_id=X` returning date→value mapping
-- [ ] Tests for API endpoint
+- [x] GET `/reports/heatmap` (or tab within `/reports`) renders heatmap view
+- [x] Dropdown to select specific habit or "All Habits"
+- [x] cal-heatmap renders full-year calendar grid colored by check-in intensity
+- [x] API endpoint `GET /api/reports/heatmap?habit_id=X` returning date→value mapping
+- [x] Tests for API endpoint
 
 **9.4 - cross_sprint_report CLI action + formatter**
 - [x] New `cross_sprint_report` action in executor (query action)
