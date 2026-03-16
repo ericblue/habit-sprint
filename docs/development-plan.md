@@ -676,7 +676,7 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 | 9.5 | Category balance chart + weekly score trend | Category balance radar/bar chart and daily completion % line chart | Medium | M | 9.1 | Done <!-- vk:ERI-63 --> |
 | 9.6 | Habit trend line chart (per-habit across sprints) | Per-habit weekly completion % line chart across sprints | Medium | M | 9.1 | Done <!-- vk:ERI-64 --> |
 | 9.7 | Streak leaderboard + progress_summary CLI action | Streak ranking table and holistic `progress_summary` CLI action for LLM | Medium | M | 9.4 | Done <!-- vk:ERI-65 --> |
-| 9.8 | README refresh + screenshots | Update README to reflect web UI, reports, per-sprint goals, and current feature set; add screenshots of dashboard, reports, and habit detail pages | Medium | S | 9.7 | |
+| 9.8 | README refresh + screenshots | Update README to reflect web UI, reports, per-sprint goals, and current feature set; add screenshots of dashboard, reports, and habit detail pages | Medium | S | 9.7 | Done |
 
 ### Task Details
 
@@ -736,14 +736,14 @@ Add a dedicated reports feature with static and dynamic reports for the web UI, 
 - [x] Tests for leaderboard and progress_summary
 
 **9.8 - README refresh + screenshots**
-- [ ] Update README intro to highlight both LLM-first and web UI approaches as dual interfaces
-- [ ] Add "Web Interface" section with description of the dashboard, habit management, sprint management, and reports pages
-- [ ] Capture and add screenshots: sprint dashboard, reports page (charts/heatmap), habits list, habit detail, sprint detail
-- [ ] Add screenshots to a `docs/screenshots/` directory
-- [ ] Update architecture diagram to show web UI alongside CLI/LLM flow
-- [ ] Document new features: per-sprint goal overrides, habit detail with streaks, delete habit, year/month sprint grouping
-- [ ] Update "Quick Start" section to include `habit-sprint serve` for launching the web UI
-- [ ] Review and update any outdated sections (dependencies, feature list, etc.)
+- [x] Update README intro to highlight both LLM-first and web UI approaches as dual interfaces
+- [x] Add "Web Interface" section with description of the dashboard, habit management, sprint management, and reports pages
+- [x] Capture and add screenshots: sprint dashboard, reports page (charts/heatmap), habits list, habit detail, sprint detail
+- [x] Add screenshots to a `docs/screenshots/` directory
+- [x] Update architecture diagram to show web UI alongside CLI/LLM flow
+- [x] Document new features: per-sprint goal overrides, habit detail with streaks, delete habit, year/month sprint grouping
+- [x] Update "Quick Start" section to include `habit-sprint serve` for launching the web UI
+- [x] Review and update any outdated sections (dependencies, feature list, etc.)
 
 ---
 
