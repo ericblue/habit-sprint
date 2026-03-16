@@ -4,8 +4,9 @@
 
 {% block head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<link rel="stylesheet" href="https://unpkg.com/cal-heatmap/dist/cal-heatmap.css">
-<script src="https://unpkg.com/cal-heatmap/dist/cal-heatmap.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/cal-heatmap@4.2.4/dist/cal-heatmap.css">
+<script src="https://unpkg.com/cal-heatmap@4.2.4/dist/cal-heatmap.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -159,9 +160,9 @@
           .then(function(r) { return r.json(); })
           .then(function(result) {
             const rawData = result.data || {};
-            // Convert {date: value} to [{date, value}] for cal-heatmap
+            // Convert {date: value} to [{date (timestamp), value}] for cal-heatmap v4
             const data = Object.keys(rawData).map(function(d) {
-              return { date: d, value: rawData[d] };
+              return { date: new Date(d + 'T00:00:00').getTime() / 1000, value: rawData[d] };
             });
 
             cal = new CalHeatmap();
