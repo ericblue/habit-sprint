@@ -1095,6 +1095,13 @@ def create_app(db_path: str = DEFAULT_DB_PATH) -> FastAPI:
         execute({"action": "archive_sprint", "payload": {"sprint_id": sprint_id}}, request.app.state.db_path)
         return RedirectResponse(url="/sprints", status_code=303)
 
+    @app.post("/sprints/{sprint_id}/unarchive")
+    async def unarchive_sprint(request: Request, sprint_id: str):
+        result = execute({"action": "unarchive_sprint", "payload": {"sprint_id": sprint_id}}, request.app.state.db_path)
+        if result["status"] == "error":
+            return RedirectResponse(url=f"/sprints?msg={result['error']}", status_code=303)
+        return RedirectResponse(url="/sprints?msg=Sprint+restored", status_code=303)
+
     # --- Checkbox toggle endpoint (htmx) ---
 
     @app.post("/toggle/{habit_id}/{toggle_date}")

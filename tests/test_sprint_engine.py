@@ -346,6 +346,135 @@ class TestArchiveSprint:
         except ValueError as e:
             assert "Sprint not found" in str(e)
 
+    def test_archive_snapshots_global_habits(self):
+        """Archiving a sprint should create sprint_habit_goals for global habits
+        so that the archived sprint retains the same habit set and scores."""
+        conn = _fresh_conn()
+        engine.create_sprint(conn, {
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-14",
+        })
+        # Create a global habit (no sprint_id)
+        engine.create_habit(conn, {
+            "id": "daily-walk",
+            "name": "Daily Walk",
+            "category": "Fitness",
+            "target_per_week": 7,
+        })
+        # Verify no sprint_habit_goals row exists yet
+        row = conn.execute(
+            "SELECT * FROM sprint_habit_goals WHERE sprint_id = ? AND habit_id = ?",
+            ("2026-S01", "daily-walk"),
+        ).fetchone()
+        assert row is None
+
+        engine.archive_sprint(conn, {"sprint_id": "2026-S01"})
+
+        # After archiving, a sprint_habit_goals row should exist for the global habit
+        row = conn.execute(
+            "SELECT * FROM sprint_habit_goals WHERE sprint_id = ? AND habit_id = ?",
+            ("2026-S01", "daily-walk"),
+        ).fetchone()
+        assert row is not None
+        assert row["target_per_week"] == 7
+        assert row["weight"] == 1
+
+    def test_archive_does_not_duplicate_existing_goals(self):
+        """Archiving should not overwrite existing sprint_habit_goals rows."""
+        conn = _fresh_conn()
+        engine.create_sprint(conn, {
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-14",
+        })
+        engine.create_habit(conn, {
+            "id": "daily-walk",
+            "name": "Daily Walk",
+            "category": "Fitness",
+            "target_per_week": 7,
+        })
+        # Manually set a custom goal override
+        engine.set_sprint_habit_goal(conn, {
+            "sprint_id": "2026-S01",
+            "habit_id": "daily-walk",
+            "target_per_week": 5,
+            "weight": 2,
+        })
+
+        engine.archive_sprint(conn, {"sprint_id": "2026-S01"})
+
+        # The custom override should be preserved, not replaced with habit defaults
+        row = conn.execute(
+            "SELECT * FROM sprint_habit_goals WHERE sprint_id = ? AND habit_id = ?",
+            ("2026-S01", "daily-walk"),
+        ).fetchone()
+        assert row["target_per_week"] == 5
+        assert row["weight"] == 2
+
+
+class TestUnarchiveSprint:
+    def test_restores_active_status(self):
+        conn = _fresh_conn()
+        engine.create_sprint(conn, {
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-14",
+        })
+        engine.archive_sprint(conn, {"sprint_id": "2026-S01"})
+        result = engine.unarchive_sprint(conn, {"sprint_id": "2026-S01"})
+        assert result["status"] == "active"
+
+    def test_nonexistent_sprint_raises(self):
+        conn = _fresh_conn()
+        try:
+            engine.unarchive_sprint(conn, {"sprint_id": "2026-S99"})
+            assert False, "Should have raised ValueError"
+        except ValueError as e:
+            assert "Sprint not found" in str(e)
+
+    def test_active_sprint_raises(self):
+        conn = _fresh_conn()
+        engine.create_sprint(conn, {
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-14",
+        })
+        try:
+            engine.unarchive_sprint(conn, {"sprint_id": "2026-S01"})
+            assert False, "Should have raised ValueError"
+        except ValueError as e:
+            assert "not archived" in str(e)
+
+    def test_blocked_by_overlapping_active_sprint(self):
+        conn = _fresh_conn()
+        engine.create_sprint(conn, {
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-14",
+        })
+        engine.archive_sprint(conn, {"sprint_id": "2026-S01"})
+        # Create a new active sprint that overlaps
+        engine.create_sprint(conn, {
+            "start_date": "2026-03-10",
+            "end_date": "2026-03-23",
+        })
+        try:
+            engine.unarchive_sprint(conn, {"sprint_id": "2026-S01"})
+            assert False, "Should have raised ValueError"
+        except ValueError as e:
+            assert "overlaps" in str(e)
+
+    def test_allowed_when_no_overlap(self):
+        conn = _fresh_conn()
+        engine.create_sprint(conn, {
+            "start_date": "2026-03-01",
+            "end_date": "2026-03-14",
+        })
+        engine.archive_sprint(conn, {"sprint_id": "2026-S01"})
+        # Create a non-overlapping active sprint
+        engine.create_sprint(conn, {
+            "start_date": "2026-03-15",
+            "end_date": "2026-03-28",
+        })
+        result = engine.unarchive_sprint(conn, {"sprint_id": "2026-S01"})
+        assert result["status"] == "active"
+
 
 class TestGetActiveSprint:
     def test_returns_active_sprint(self):

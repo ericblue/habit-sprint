@@ -88,6 +88,9 @@ ACTION_SCHEMAS = {
     "archive_sprint": {
         "sprint_id": {"type": "str", "required": True},
     },
+    "unarchive_sprint": {
+        "sprint_id": {"type": "str", "required": True},
+    },
     "get_active_sprint": {},
 
     # --- Habit mutations ---

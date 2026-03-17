@@ -41,6 +41,12 @@
         <button type="submit" class="btn btn-danger">Archive Sprint</button>
     </form>
 </p>
+{% else %}
+<p style="margin-top: 1rem;">
+    <form class="inline" method="post" action="/sprints/{{ sprint.id }}/unarchive">
+        <button type="submit" class="btn btn-outline" onclick="return confirm('Restore this sprint to active?')">Restore Sprint</button>
+    </form>
+</p>
 {% endif %}
 
 <h2 style="margin-top: 1.5rem;">Retrospective</h2>

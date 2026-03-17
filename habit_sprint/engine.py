@@ -19,14 +19,21 @@ def _generate_sprint_id(conn: sqlite3.Connection, start_date: str) -> str:
     return f"{year}-S{count + 1:02d}"
 
 
-def _check_overlap(conn: sqlite3.Connection, start_date: str, end_date: str) -> None:
+def _check_overlap(
+    conn: sqlite3.Connection,
+    start_date: str,
+    end_date: str,
+    exclude_id: str | None = None,
+) -> None:
     """Raise ValueError if the date range overlaps any active sprint."""
-    overlapping = conn.execute(
-        """SELECT id, start_date, end_date FROM sprints
-           WHERE status = 'active'
-             AND NOT (start_date > ? OR end_date < ?)""",
-        (end_date, start_date),
-    ).fetchone()
+    query = """SELECT id, start_date, end_date FROM sprints
+               WHERE status = 'active'
+                 AND NOT (start_date > ? OR end_date < ?)"""
+    params: list = [end_date, start_date]
+    if exclude_id:
+        query += " AND id != ?"
+        params.append(exclude_id)
+    overlapping = conn.execute(query, params).fetchone()
     if overlapping:
         raise ValueError(
             f"Cannot create sprint: date range {start_date} to {end_date} "
@@ -139,9 +146,48 @@ def archive_sprint(conn: sqlite3.Connection, payload: dict) -> dict:
     if row is None:
         raise ValueError(f"Sprint not found: {sprint_id}")
 
+    # Snapshot global habits into sprint_habit_goals before archiving so that
+    # the archived sprint retains the same habit set (and scores) it had when
+    # active.  Global habits (sprint_id IS NULL) are automatically included in
+    # active sprints but would be dropped from the archived query unless they
+    # have explicit sprint_habit_goals rows.
+    conn.execute(
+        """INSERT OR IGNORE INTO sprint_habit_goals
+               (sprint_id, habit_id, target_per_week, weight)
+           SELECT ?, h.id, h.target_per_week, h.weight
+           FROM habits h
+           WHERE h.sprint_id IS NULL AND h.archived = 0
+             AND h.id NOT IN (
+                 SELECT habit_id FROM sprint_habit_goals WHERE sprint_id = ?
+             )""",
+        (sprint_id, sprint_id),
+    )
+
     now = datetime.now().isoformat()
     conn.execute(
         "UPDATE sprints SET status = 'archived', updated_at = ? WHERE id = ?",
+        (now, sprint_id),
+    )
+    conn.commit()
+
+    row = conn.execute("SELECT * FROM sprints WHERE id = ?", (sprint_id,)).fetchone()
+    return _sprint_row_to_dict(row)
+
+
+def unarchive_sprint(conn: sqlite3.Connection, payload: dict) -> dict:
+    sprint_id = payload["sprint_id"]
+    row = conn.execute("SELECT * FROM sprints WHERE id = ?", (sprint_id,)).fetchone()
+    if row is None:
+        raise ValueError(f"Sprint not found: {sprint_id}")
+    if row["status"] != "archived":
+        raise ValueError(f"Sprint {sprint_id} is not archived")
+
+    # Ensure no active sprint overlaps this sprint's date range
+    _check_overlap(conn, row["start_date"], row["end_date"], exclude_id=sprint_id)
+
+    now = datetime.now().isoformat()
+    conn.execute(
+        "UPDATE sprints SET status = 'active', updated_at = ? WHERE id = ?",
         (now, sprint_id),
     )
     conn.commit()

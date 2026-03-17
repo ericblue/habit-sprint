@@ -43,6 +43,9 @@
           </form>
           {% else %}
           <span class="badge badge-archived">archived</span>
+          <form class="inline" method="post" action="/sprints/{{ s.id }}/unarchive">
+              <button type="submit" class="btn btn-sm btn-outline" onclick="return confirm('Restore this sprint to active?')">Restore</button>
+          </form>
           {% endif %}
         </div>
       </div>

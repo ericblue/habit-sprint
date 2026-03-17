@@ -9,6 +9,7 @@ _MUTATION_ACTIONS = {
     "update_sprint": engine.update_sprint,
     "list_sprints": engine.list_sprints,
     "archive_sprint": engine.archive_sprint,
+    "unarchive_sprint": engine.unarchive_sprint,
     "get_active_sprint": engine.get_active_sprint,
     "create_habit": engine.create_habit,
     "update_habit": engine.update_habit,

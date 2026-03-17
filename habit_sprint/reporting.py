@@ -119,9 +119,10 @@ def _get_sprint_habits(conn: sqlite3.Connection, sprint_id: str) -> list:
             """SELECT DISTINCT h.* FROM habits h
                LEFT JOIN sprint_habit_goals shg
                  ON shg.habit_id = h.id AND shg.sprint_id = ?
-               WHERE shg.sprint_id IS NOT NULL
-                  OR (h.archived = 0 AND h.sprint_id = ?)
-                  OR (h.archived = 0 AND h.sprint_id IS NULL)
+               WHERE h.archived = 0
+                 AND (shg.sprint_id IS NOT NULL
+                      OR h.sprint_id = ?
+                      OR h.sprint_id IS NULL)
                ORDER BY h.category, h.created_at""",
             (sprint_id, sprint_id),
         ).fetchall()
@@ -131,8 +132,9 @@ def _get_sprint_habits(conn: sqlite3.Connection, sprint_id: str) -> list:
             """SELECT DISTINCT h.* FROM habits h
                LEFT JOIN sprint_habit_goals shg
                  ON shg.habit_id = h.id AND shg.sprint_id = ?
-               WHERE shg.sprint_id IS NOT NULL
-                  OR (h.archived = 0 AND h.sprint_id = ?)
+               WHERE h.archived = 0
+                 AND (shg.sprint_id IS NOT NULL
+                      OR h.sprint_id = ?)
                ORDER BY h.category, h.created_at""",
             (sprint_id, sprint_id),
         ).fetchall()

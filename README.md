@@ -404,8 +404,19 @@ The core design principles from that original spreadsheet carried forward into t
 
 | Version   | Date       | Description     |
 | --------- | ---------- | --------------- |
+| **0.2.1** | 2026-03-16 | Bug fixes and sprint unarchive |
 | **0.2.0** | 2026-03-15 | Web UI, reports, and analytics |
 | **0.1.0** | 2026-03-01 | Initial release |
+
+### v0.2.1 — Bug Fixes & Sprint Unarchive
+
+- Fix archived sprint scores changing from active values — archived habits with stale `sprint_habit_goals` entries were being included in score calculations
+- Snapshot global habits into `sprint_habit_goals` on archive so the habit set is preserved
+- Add sprint unarchive/restore functionality (engine, API, and web UI)
+- Add `make release V=x.y.z` target for automated versioning, tagging, and push
+- Add `/release` slash command for Claude Code
+- 28 JSON actions (up from 27)
+- 896 tests (up from 889)
 
 ### v0.2.0 — Web UI, Reports & Analytics
 

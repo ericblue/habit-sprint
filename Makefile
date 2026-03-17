@@ -169,6 +169,67 @@ openclaw-skill-check: ## Show OpenClaw skill install status
 		echo "  Run 'make openclaw-skill-install' to install."; \
 	fi
 
+# ── Release ────────────────────────────────────────────────────────────────────
+
+.PHONY: release
+
+release: ## Update version, changelog, tag, and push (usage: make release V=0.3.0)
+	@if [ -z "$(V)" ]; then \
+		echo "Error: specify version with V=x.y.z"; \
+		echo "  Example: make release V=0.3.0"; \
+		exit 1; \
+	fi
+	@echo "Updating version to $(V)..."
+	@sed -i '' 's/^__version__ = ".*"/__version__ = "$(V)"/' habit_sprint/__init__.py
+	@sed -i '' 's/^version = ".*"/version = "$(V)"/' pyproject.toml
+	@sed -i '' 's/assert __version__ == ".*"/assert __version__ == "$(V)"/' tests/test_placeholder.py
+	@echo "Updated:"
+	@echo "  habit_sprint/__init__.py"
+	@echo "  pyproject.toml"
+	@echo "  tests/test_placeholder.py"
+	@echo ""
+	@PREV_TAG=$$(git describe --tags --abbrev=0 2>/dev/null || echo ""); \
+	if [ -n "$$PREV_TAG" ]; then \
+		echo "== Commits since $$PREV_TAG (for README changelog) =="; \
+		echo ""; \
+		git log --pretty=format:"- %s" "$$PREV_TAG"..HEAD -- ':!README.md'; \
+		echo ""; \
+		echo ""; \
+	else \
+		echo "== All commits (for README changelog) =="; \
+		echo ""; \
+		git log --pretty=format:"- %s" -- ':!README.md'; \
+		echo ""; \
+		echo ""; \
+	fi
+	@printf "Continue with release? [Y/n] "; \
+	read ans; \
+	if [ "$$ans" = "n" ] || [ "$$ans" = "N" ]; then \
+		echo "Aborted. Version files were updated but not committed."; \
+		echo "Run 'git checkout -- habit_sprint/__init__.py pyproject.toml tests/test_placeholder.py' to revert."; \
+		exit 1; \
+	fi
+	@if git tag -l "v$(V)" | grep -q "v$(V)"; then \
+		echo ""; \
+		echo "Warning: tag v$(V) already exists."; \
+		printf "Overwrite? [y/N] "; \
+		read ans; \
+		if [ "$$ans" = "y" ] || [ "$$ans" = "Y" ]; then \
+			git tag -d "v$(V)"; \
+			git push origin --delete "v$(V)" 2>/dev/null || true; \
+		else \
+			echo "Aborted."; \
+			exit 1; \
+		fi; \
+	fi
+	@git add habit_sprint/__init__.py pyproject.toml tests/test_placeholder.py README.md
+	@git commit -m "chore: bump version to $(V)"
+	@git tag "v$(V)"
+	@git push
+	@git push --tags
+	@echo ""
+	@echo "Version $(V) released, pushed, and tagged v$(V)."
+
 # ── Cleanup ────────────────────────────────────────────────────────────────────
 
 .PHONY: clean clean-all
@@ -195,4 +256,5 @@ help: ## Show available targets
 	@echo ""
 	@echo "Variables:"
 	@echo "  PORT                 Web server port (default: 8000)"
+	@echo "  V                    Version for 'make release' (e.g. V=0.3.0)"
 	@echo "  OPENCLAW_SKILLS_DIR  Override OpenClaw skills directory (default: ~/clawd/skills)"
